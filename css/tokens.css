@@ -1,0 +1,78 @@
+/* =========================================================
+   DRAGFORCE · DESIGN TOKENS
+   Sistema de identidade visual — motorsport / performance / dados.
+   ========================================================= */
+
+:root {
+  /* --- Superfícies --- */
+  --bg-void: #08090c;
+  --bg-app: #0b0c11;
+  --bg-surface: #131520;
+  --bg-surface-2: #191c29;
+  --bg-surface-3: #212434;
+  --bg-elevated: #1c1f2c;
+
+  /* --- Bordas --- */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+
+  /* --- Texto --- */
+  --text-primary: #f2f4f8;
+  --text-secondary: #9aa1b2;
+  --text-muted: #5d6273;
+  --text-disabled: #3d4150;
+
+  /* --- Marca DragForce (extraída das logos oficiais) --- */
+  --df-red: #e00710;
+  --df-red-bright: #ff3232;
+  --df-red-dim: #7a0209;
+  --df-gradient: linear-gradient(90deg, #ff2f2f 0%, var(--df-red) 55%, #900008 100%);
+  --df-gradient-soft: linear-gradient(135deg, rgba(224, 7, 16, 0.18) 0%, rgba(224, 7, 16, 0.05) 100%);
+
+  /* --- Acento metálico (Boost Club / dados) --- */
+  --chrome-1: #f3f4f6;
+  --chrome-2: #b7bbc3;
+  --chrome-3: #6c7078;
+  --chrome-gradient: linear-gradient(135deg, var(--chrome-1) 0%, var(--chrome-2) 55%, var(--chrome-3) 100%);
+
+  /* --- Estados --- */
+  --success: #2ed47a;
+  --warning: #ffc53d;
+  --danger: #ff4d4f;
+
+  /* --- Tipografia --- */
+  --font-display: 'Orbitron', 'Arial Black', sans-serif;
+  --font-heading: 'Rajdhani', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* --- Raios --- */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* --- Sombras --- */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.55);
+  --shadow-glow-red: 0 0 0 1px rgba(224, 7, 16, 0.25), 0 8px 28px rgba(224, 7, 16, 0.18);
+
+  /* --- Espaçamento --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* --- Layout --- */
+  --header-height: 76px;
+  --max-width: 1320px;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
