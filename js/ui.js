@@ -109,6 +109,37 @@ DF.ui = {
   },
 
   /**
+   * Abre um modal de confirmação para uma ação destrutiva (excluir).
+   * onConfirm() deve retornar uma Promise; se ela lançar erro, o modal
+   * mostra o erro e continua aberto. Se tiver sucesso, fecha sozinho.
+   */
+  confirmDelete({ title = 'Excluir registro', message, confirmLabel = 'Excluir', onConfirm }) {
+    DF.ui.openModal({
+      title,
+      bodyHtml: `<p style="color:var(--text-secondary);font-size:14px;line-height:1.5">${DF.utils.escapeHtml(message || 'Essa ação não pode ser desfeita.')}</p>`,
+      footerHtml: `
+        <button class="btn btn-ghost" data-close>Cancelar</button>
+        <button class="btn btn-danger" id="confirm-delete-btn">${DF.utils.escapeHtml(confirmLabel)}</button>
+      `,
+      onMount: (overlay, close) => {
+        overlay.querySelector('#confirm-delete-btn').addEventListener('click', async () => {
+          const btn = overlay.querySelector('#confirm-delete-btn');
+          btn.disabled = true;
+          btn.textContent = 'Excluindo...';
+          try {
+            await onConfirm();
+            close();
+          } catch (err) {
+            DF.utils.toast(err.message || 'Erro ao excluir.');
+            btn.disabled = false;
+            btn.textContent = confirmLabel;
+          }
+        });
+      },
+    });
+  },
+
+  /**
    * Abre o modal de cadastro/edição de carro.
    * onSaved(car) é chamado após persistir com sucesso.
    */
@@ -250,83 +281,88 @@ DF.ui = {
   },
 
   /**
-   * Abre o modal de cadastro de passada para um carro. Exige pelo menos
-   * um evento já cadastrado (a passada pertence a um evento) — se não
-   * houver nenhum, abre primeiro o cadastro de evento e encadeia.
+   * Abre o modal de cadastro (ou edição) de passada para um carro. Exige
+   * pelo menos um evento já cadastrado (a passada pertence a um evento) —
+   * se não houver nenhum, abre primeiro o cadastro de evento e encadeia.
+   * Passe `existingPass` para editar um registro já salvo (preenche os
+   * campos e faz update em vez de criar um novo).
    * onSaved(pass) é chamado após persistir com sucesso.
    */
-  async openPassForm(carId, onSaved) {
+  async openPassForm(carId, onSaved, existingPass = null) {
     const events = await DF.db.listEventsByCar(carId);
     if (!events.length) {
       DF.utils.toast('Cadastre um evento antes de registrar uma passada.');
-      DF.ui.openEventForm(carId, () => DF.ui.openPassForm(carId, onSaved));
+      DF.ui.openEventForm(carId, () => DF.ui.openPassForm(carId, onSaved, existingPass));
       return;
     }
+    const isEdit = !!existingPass;
+    const p = existingPass || {};
+    const val = (v) => (v != null ? v : '');
 
     const bodyHtml = `
       <div class="field">
         <label>Evento</label>
         <select id="pf-event">
-          ${events.map((ev) => `<option value="${ev.id}">${DF.utils.escapeHtml(ev.name)} — ${DF.utils.formatDate(ev.date)}</option>`).join('')}
+          ${events.map((ev) => `<option value="${ev.id}" ${ev.id === p.eventId ? 'selected' : ''}>${DF.utils.escapeHtml(ev.name)} — ${DF.utils.formatDate(ev.date)}</option>`).join('')}
         </select>
       </div>
       <div class="field-row">
         <div class="field">
           <label>Pista</label>
           <select id="pf-lane">
-            <option value="E">Esquerda (E)</option>
-            <option value="D">Direita (D)</option>
+            <option value="E" ${p.lane === 'E' ? 'selected' : ''}>Esquerda (E)</option>
+            <option value="D" ${p.lane === 'D' ? 'selected' : ''}>Direita (D)</option>
           </select>
         </div>
         <div class="field">
           <label>Status</label>
           <select id="pf-status">
-            <option value="valido">✅ Válido</option>
-            <option value="queimou">🔥 Queimou</option>
+            <option value="valido" ${p.status !== 'queimou' ? 'selected' : ''}>✅ Válido</option>
+            <option value="queimou" ${p.status === 'queimou' ? 'selected' : ''}>🔥 Queimou</option>
           </select>
         </div>
       </div>
       <div class="field-row">
         <div class="field">
           <label>Reação (s)</label>
-          <input type="number" id="pf-reaction" step="0.001" placeholder="Ex: 0.045" />
+          <input type="number" id="pf-reaction" step="0.001" placeholder="Ex: 0.045" value="${val(p.reactionTime)}" />
         </div>
         <div class="field">
           <label>Vel. final (km/h)</label>
-          <input type="number" id="pf-trap" step="0.1" min="0" placeholder="Ex: 165.4" />
+          <input type="number" id="pf-trap" step="0.1" min="0" placeholder="Ex: 165.4" value="${val(p.trapSpeed)}" />
         </div>
       </div>
       <div class="field-row">
         <div class="field">
           <label>60 pés (s)</label>
-          <input type="number" id="pf-t60" step="0.001" min="0" placeholder="Ex: 1.320" />
+          <input type="number" id="pf-t60" step="0.001" min="0" placeholder="Ex: 1.320" value="${val(p.t60)}" />
         </div>
         <div class="field">
           <label>100m (s)</label>
-          <input type="number" id="pf-t100" step="0.001" min="0" placeholder="Ex: 5.210" />
+          <input type="number" id="pf-t100" step="0.001" min="0" placeholder="Ex: 5.210" value="${val(p.t100)}" />
         </div>
       </div>
       <div class="field-row">
         <div class="field">
           <label>201m (s)</label>
-          <input type="number" id="pf-t201" step="0.001" min="0" placeholder="Ex: 8.840" />
+          <input type="number" id="pf-t201" step="0.001" min="0" placeholder="Ex: 8.840" value="${val(p.t201)}" />
         </div>
         <div class="field">
           <label>Total (reação + 201m)</label>
-          <input type="text" id="pf-total" disabled placeholder="—" />
+          <input type="text" id="pf-total" disabled placeholder="—" value="${p.time != null ? Number(p.time).toFixed(3) : ''}" />
         </div>
       </div>
       <div class="field">
         <label>Observações (opcional)</label>
-        <textarea id="pf-notes" rows="2" placeholder="Condições da pista, ajustes..."></textarea>
+        <textarea id="pf-notes" rows="2" placeholder="Condições da pista, ajustes...">${DF.utils.escapeHtml(p.notes || '')}</textarea>
       </div>
     `;
     const footerHtml = `
       <button class="btn btn-ghost" data-close>Cancelar</button>
-      <button class="btn btn-primary" id="pf-save">Registrar passada</button>
+      <button class="btn btn-primary" id="pf-save">${isEdit ? 'Salvar alterações' : 'Registrar passada'}</button>
     `;
     DF.ui.openModal({
-      title: 'Nova passada',
+      title: isEdit ? 'Editar passada' : 'Nova passada',
       bodyHtml,
       footerHtml,
       onMount: (overlay, close) => {
@@ -359,11 +395,12 @@ DF.ui = {
           overlay.querySelector('#pf-save').disabled = true;
           try {
             const pass = await DF.db.putPass({
+              ...(isEdit ? { id: existingPass.id } : {}),
               carId, eventId, date: ev.date, lane, status,
               reactionTime, trapSpeed, t60, t100, t201, time, notes,
             });
             close();
-            DF.utils.toast('Passada registrada.');
+            DF.utils.toast(isEdit ? 'Passada atualizada.' : 'Passada registrada.');
             onSaved && onSaved(pass);
           } catch (err) {
             DF.utils.toast(err.message || 'Erro ao salvar a passada.');

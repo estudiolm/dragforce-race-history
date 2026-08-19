@@ -16,7 +16,7 @@ DF.pages.login = {
       <div class="auth-shell">
         <img class="auth-shell__watermark" src="assets/logos/dragforce-emblem.png" alt="" aria-hidden="true" />
         <div class="auth-card">
-          <span class="wordmark"><span class="wordmark__drag">Drag</span><span class="wordmark__force">Force</span></span>
+          <img class="brand-logo" src="assets/logos/dragforce-motorsport.png" alt="DragForce Motorsport" />
           <div class="auth-card__tag">${DF.mode === 'supabase' ? 'Área da equipe — acesso restrito' : 'Área da equipe — modo local (sem login real ainda)'}</div>
           <form id="login-form">
             <div class="field">

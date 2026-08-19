@@ -44,28 +44,37 @@ dragforce/
 ├── supabase/
 │   └── schema.sql              → tabelas, RLS e bucket de fotos — ver GUIA-GITHUB-SUPABASE.md
 ├── assets/
-│   ├── logos/                 → dragforce-logo.png, dragforce-emblem.png, boostclub-logo.png
+│   ├── logos/                 → dragforce-motorsport.png, dragforce-emblem.png, boostclub-logo.png
+│   ├── icons/                 → ícones do app instalável (PWA), gerados a partir do emblema
 │   ├── car-placeholder.svg    → placeholder elegante para carro sem foto
 │   ├── fonts/                 → arquivos .woff2 (Orbitron, Rajdhani, Inter, JetBrains Mono)
 │   └── vendor/chart.js        → biblioteca do gráfico de evolução de tempos
+├── manifest.webmanifest       → metadados do app instalável (nome, ícones, cores)
+├── sw.js                      → service worker (cache do app shell, funciona offline)
 └── GUIA-GITHUB-SUPABASE.md    → passo a passo para GitHub + Supabase
 ```
 
 ## Logos
 
-`assets/logos/` já usa as logos reais da equipe, agora com fundo **transparente de verdade** (sem a caixa preta que aparecia atrás delas antigamente):
+`assets/logos/` usa as logos reais da equipe, com fundo **transparente de verdade** (sem caixa preta atrás):
 
-| Arquivo                             | Onde aparece                                                          |
-|--------------------------------------|------------------------------------------------------------------------|
-| `assets/logos/dragforce-emblem.png`  | Hero da página Sobre, marca d'água na tela de login (caveira)          |
-| `assets/logos/boostclub-logo.png`    | Rodapé, badge "Powered by", tela de login, página Sobre                |
+| Arquivo                                  | Onde aparece                                                            |
+|--------------------------------------------|----------------------------------------------------------------------|
+| `assets/logos/dragforce-motorsport.png`  | Header, tela de login, hero e card da página Sobre (logo oficial "DragForce Motorsport") |
+| `assets/logos/dragforce-emblem.png`      | Ícones do app (PWA), marca d'água na tela de login (caveira)           |
+| `assets/logos/boostclub-logo.png`        | Rodapé, badge "Powered by", tela de login, página Sobre                |
 | `assets/logos/favicon.png` / `favicon-32.png` | Ícone da aba do navegador (emblema sobre uma placa escura arredondada) |
 
-Se um dia quiser atualizar alguma logo, **basta substituir o arquivo mantendo o mesmo nome** — nenhum ajuste de layout é necessário (os espaços já são dimensionados por altura, com largura automática). Os arquivos originais em alta resolução ficam em `assets/logos-original/` (não usados pelo site, só como material-fonte de backup).
+O nome "DragForce" no header, na tela de login e na página Sobre é a **imagem oficial da logo** (classe `.brand-logo`, em `css/layout.css`) — não é mais texto estilizado em CSS. Se um dia quiser atualizar alguma logo, **basta substituir o arquivo mantendo o mesmo nome** — nenhum ajuste de layout é necessário (os espaços já são dimensionados por altura, com largura automática).
 
-O nome "DragForce" no header, na tela de login e na página Sobre **não é mais uma imagem** — é texto de verdade, estilizado em CSS (classe `.wordmark`, em `css/layout.css`), sem a moldura/pílula preta que tinha na logo original. Para mudar a cor, o tamanho ou a fonte, é só editar essa classe; para trocar a imagem da caveira (emblema), continua sendo `assets/logos/dragforce-emblem.png` normalmente.
+Os arquivos originais em alta resolução ficam em `assets/logos-original/` (não usados pelo site, só como material-fonte de backup — e não vão para o Git, ver `.gitignore`).
 
-Se precisar reprocessar as logos a partir dos arquivos-fonte (ex.: trocar por uma versão nova), rode `python3 scripts/detransparentize_logos.py` — ele lê `assets/logos-original/*-final.png`, remove o fundo preto sólido e gera os arquivos finais em `assets/logos/` (requer `pillow`, `numpy` e `scipy`: `pip install pillow numpy scipy --break-system-packages`).
+Se precisar reprocessar as logos a partir dos arquivos-fonte (ex.: trocar por uma versão nova):
+
+* `python3 scripts/detransparentize_logos.py` — remove fundo preto sólido dos masters já em alta resolução (`assets/logos-original/*-final.png`).
+* `python3 scripts/process_motorsport_logo.py` — usado para a logo "DragForce Motorsport" que veio em baixa resolução (JPEG com fundo preto): faz upscale 4x com super-resolução (EDSR, `cv2.dnn_superres`), remove ruído de compressão, aplica nitidez e remove o fundo preto. Requer `pillow`, `numpy`, `scipy` e `opencv-contrib-python` (`pip install pillow numpy scipy opencv-contrib-python --break-system-packages`) e o modelo `EDSR_x4.pb` (baixado uma vez de `github.com/Saafke/EDSR_Tensorflow`).
+
+Os ícones do app instalável (`assets/icons/`) são gerados a partir do emblema com `python3 scripts/generate_pwa_icons.py` — se o emblema mudar, rode esse script de novo para atualizar os ícones.
 
 ## Fotos dos carros
 
@@ -82,6 +91,8 @@ Na ficha do carro, o botão **"+ Novo evento"** (seção Histórico de eventos) 
 * **Status** — Válido ou Queimou (saída antecipada/largada queimada — não conta para o melhor tempo nem entra no gráfico de evolução).
 * **Reação**, **60 pés**, **100m**, **201m** (tempos parciais, em segundos) e **Vel. final** (velocidade no fim da pista, km/h).
 * **Total** — calculado automaticamente como reação + 201m assim que os dois campos são preenchidos; é esse valor que aparece como "melhor tempo" e alimenta o gráfico de evolução.
+
+Cada linha da tabela **Últimas passadas** tem dois botões na coluna de ações: ✏️ **editar** (abre o mesmo formulário já preenchido com os valores da passada, e salva como atualização — não cria um registro novo) e 🗑️ **excluir** (pede confirmação antes de apagar, ação que não pode ser desfeita).
 
 ## Inspeções e manutenções
 
@@ -112,3 +123,12 @@ O passo a passo completo para ativar o modo Supabase (e também para colocar o c
 No modo local, a tela `#/login` é só a camada visual/UX (qualquer usuário/senha leva ao dashboard, sem checar nada) — ela existe para já reservar o espaço visual e a assinatura Boost Club. No modo Supabase, o login passa a checar de verdade: usuário e senha (sem e-mail) contra a lista fixa em `js/users.js`, e protege todas as rotas do sistema.
 
 Não é uma tela de "esqueci minha senha" nem tem cadastro público — é uma lista curta e de confiança, pensada para uma equipe pequena. Ver a seção **Login da equipe** em [`GUIA-GITHUB-SUPABASE.md`](./GUIA-GITHUB-SUPABASE.md) para entender como funciona por trás dos panos (e por que ainda existe uma conta técnica única no Supabase).
+
+## App instalável (PWA)
+
+O site pode ser "instalado" como se fosse um aplicativo — no celular (Android/iPhone) ou no computador — ficando com ícone próprio (o emblema DragForce), abrindo em tela cheia sem barra de navegador, e funcionando offline para quem já usou o sistema antes (os dados de carros/passadas continuam exigindo internet, já que ficam no Supabase — só a "casca" do app, ou seja header/menus/telas, é que funciona sem conexão).
+
+* **Android/Chrome/Edge (computador ou celular):** aparece um botão de instalar no header (ícone de seta pra baixo, ao lado do ícone de usuário) assim que o navegador considera o site "instalável"; também dá pra instalar pelo menu do navegador (⋮ → "Instalar app" / "Adicionar à tela inicial").
+* **iPhone/iPad (Safari):** não existe esse botão automático — é: toque em **Compartilhar** (ícone de quadrado com seta) → **Adicionar à Tela de Início**.
+
+Por trás dos panos isso é feito com dois arquivos padrão da web (nenhuma dependência nova): `manifest.webmanifest` (nome, ícones e cores do app) e `sw.js` (service worker — o script que guarda o "app shell" em cache). **Sempre que os arquivos do site forem atualizados**, é importante trocar o número em `CACHE_VERSION` no topo de `sw.js` — é isso que avisa o navegador de cada pessoa da equipe pra baixar a versão nova em vez de continuar servindo a antiga do cache.

@@ -132,6 +132,10 @@ DF.dbLocal = {
     await reqToPromise(store.put(toSave));
     return toSave;
   },
+  async deletePass(id) {
+    const store = await tx('passes', 'readwrite');
+    return reqToPromise(store.delete(id));
+  },
 
   // ---- Inspections ----
   async listInspectionsByCar(carId) {

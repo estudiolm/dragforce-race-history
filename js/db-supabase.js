@@ -132,6 +132,10 @@ DF.dbSupabase = {
     throwIfError(error);
     return passFromDb(data);
   },
+  async deletePass(id) {
+    const { error } = await sbClient().from('passes').delete().eq('id', id);
+    throwIfError(error);
+  },
 
   // ---- Inspections ----
   async listInspectionsByCar(carId) {

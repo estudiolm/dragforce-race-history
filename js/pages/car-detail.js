@@ -127,7 +127,7 @@ DF.pages.carDetail = {
               <tr>
                 <th>Data</th><th>Evento</th><th>Pista</th><th>Status</th>
                 <th class="num">Reação</th><th class="num">60 pés</th><th class="num">100m</th><th class="num">201m</th>
-                <th class="num">Vel. final</th><th class="num">Total</th>
+                <th class="num">Vel. final</th><th class="num">Total</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -146,6 +146,14 @@ DF.pages.carDetail = {
                     <td class="num">${p.t201 != null ? p.t201.toFixed(3) : '—'}</td>
                     <td class="num">${DF.utils.formatSpeed(p.trapSpeed)}</td>
                     <td class="num ${isBest ? 'best' : ''}">${p.time != null ? DF.utils.formatTime(p.time) : '—'}${isBest ? ' 🏆' : ''}</td>
+                    <td style="white-space:nowrap">
+                      <button class="btn-icon-sm" data-edit-pass="${p.id}" title="Editar passada" aria-label="Editar passada">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button class="btn-icon-sm" data-delete-pass="${p.id}" title="Excluir passada" aria-label="Excluir passada">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                      </button>
+                    </td>
                   </tr>
                 `;
               }).join('')}
@@ -220,6 +228,28 @@ DF.pages.carDetail = {
     });
     root.querySelector('#btn-new-pass').addEventListener('click', () => {
       DF.ui.openPassForm(carId, () => DF.router.render());
+    });
+    root.querySelectorAll('[data-delete-pass]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const passId = btn.getAttribute('data-delete-pass');
+        DF.ui.confirmDelete({
+          title: 'Excluir passada',
+          message: 'Tem certeza que quer excluir essa passada? Essa ação não pode ser desfeita.',
+          onConfirm: async () => {
+            await DF.db.deletePass(passId);
+            DF.utils.toast('Passada excluída.');
+            DF.router.render();
+          },
+        });
+      });
+    });
+    root.querySelectorAll('[data-edit-pass]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const passId = btn.getAttribute('data-edit-pass');
+        const pass = summary.passes.find((p) => p.id === passId);
+        if (!pass) return;
+        DF.ui.openPassForm(carId, () => DF.router.render(), pass);
+      });
     });
     root.querySelector('#btn-new-inspection').addEventListener('click', () => {
       DF.ui.openInspectionForm(carId, () => DF.router.render());

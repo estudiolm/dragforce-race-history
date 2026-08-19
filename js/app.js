@@ -88,12 +88,59 @@ function initNavToggle() {
   toggle.addEventListener('click', () => nav.classList.toggle('open'));
 }
 
+let deferredInstallPrompt = null;
+
+function initInstallPrompt() {
+  const btn = document.getElementById('install-app-btn');
+  if (!btn) return;
+
+  // Chrome/Edge/Android disparam esse evento quando o app "pode" ser instalado
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    btn.style.display = '';
+  });
+
+  btn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    btn.disabled = true;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    btn.style.display = 'none';
+    btn.disabled = false;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    btn.style.display = 'none';
+    deferredInstallPrompt = null;
+  });
+
+  // já instalado (ex: iOS via "Adicionar à Tela de Início", ou já rodando em standalone)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone) btn.style.display = 'none';
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  // só registra em http(s) — evita erro ao abrir o index.html direto via file://
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // instalação como app é "progressive enhancement" — se falhar, o site
+      // continua funcionando normalmente pelo navegador
+    });
+  });
+}
+
 async function bootstrap() {
   detectMode();
   if (DF.mode === 'local') {
     await DF.seed.run(); // dados de exemplo só fazem sentido no modo local/demonstração
   }
   initNavToggle();
+  initInstallPrompt();
+  registerServiceWorker();
   window.addEventListener('hashchange', DF.router.render);
   await DF.router.render();
 }
