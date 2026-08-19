@@ -18,6 +18,15 @@ DF.pages.carDetail = {
     return `<span class="badge ${m.cls}">${m.icon} ${m.label}</span>`;
   },
 
+  passStatusBadge(status) {
+    const map = {
+      valido: { cls: 'badge-success', label: 'Válido', icon: '✅' },
+      queimou: { cls: 'badge-danger', label: 'Queimou', icon: '🔥' },
+    };
+    const m = map[status] || map.valido;
+    return `<span class="badge ${m.cls}">${m.icon} ${m.label}</span>`;
+  },
+
   async render(root, carId) {
     const car = await DF.db.getCar(carId);
     if (!car) {
@@ -69,6 +78,10 @@ DF.pages.carDetail = {
           <div class="stat-tile__label">🔧 Inspeções</div>
           <div class="stat-tile__value">${summary.totalInspections}</div>
         </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">🛠️ Manutenções</div>
+          <div class="stat-tile__value">${summary.totalMaintenances}</div>
+        </div>
       </div>
 
       <div class="section-head"><div class="section-title">Evolução de tempos</div></div>
@@ -76,12 +89,16 @@ DF.pages.carDetail = {
         ${summary.passes.length ? `<div class="chart-card__canvas-wrap"><canvas id="evo-chart"></canvas></div>` : `<div class="empty-state">Sem passadas registradas ainda para gerar o gráfico.</div>`}
       </div>
 
-      <div class="section-head"><div class="section-title">Histórico de eventos</div></div>
+      <div class="section-head">
+        <div class="section-title">Histórico de eventos</div>
+        <button class="btn btn-secondary btn-sm" id="btn-new-event">+ Novo evento</button>
+      </div>
       ${summary.events.length ? `
         <div class="timeline" style="margin-bottom:var(--space-6)">
           ${summary.events.map((ev) => {
             const evPasses = summary.passes.filter((p) => p.eventId === ev.id);
-            const evBest = evPasses.length ? Math.min(...evPasses.map((p) => p.time)) : null;
+            const evTimes = evPasses.filter((p) => p.status !== 'queimou' && typeof p.time === 'number' && !isNaN(p.time)).map((p) => p.time);
+            const evBest = evTimes.length ? Math.min(...evTimes) : null;
             return `
               <div class="timeline-item">
                 <div class="timeline-item__date mono">${DF.utils.formatDateLong(ev.date)}</div>
@@ -99,22 +116,36 @@ DF.pages.carDetail = {
         </div>
       ` : `<div class="empty-state" style="margin-bottom:var(--space-6)">Nenhum evento registrado ainda.</div>`}
 
-      <div class="section-head"><div class="section-title">Últimas passadas</div></div>
+      <div class="section-head">
+        <div class="section-title">Últimas passadas</div>
+        <button class="btn btn-secondary btn-sm" id="btn-new-pass">+ Nova passada</button>
+      </div>
       ${summary.passes.length ? `
         <div class="table-wrap" style="margin-bottom:var(--space-6)">
           <table class="dt">
-            <thead><tr><th>Data</th><th>Evento</th><th class="num">Tempo</th><th class="num">Vel. trap</th><th class="num">Reação</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Data</th><th>Evento</th><th>Pista</th><th>Status</th>
+                <th class="num">Reação</th><th class="num">60 pés</th><th class="num">100m</th><th class="num">201m</th>
+                <th class="num">Vel. final</th><th class="num">Total</th>
+              </tr>
+            </thead>
             <tbody>
               ${summary.passes.slice(0, 12).map((p) => {
                 const ev = summary.events.find((e) => e.id === p.eventId);
-                const isBest = summary.bestTime != null && p.time === summary.bestTime;
+                const isBest = p.status !== 'queimou' && summary.bestTime != null && p.time === summary.bestTime;
                 return `
                   <tr>
                     <td class="num">${DF.utils.formatDate(p.date)}</td>
                     <td>${ev ? DF.utils.escapeHtml(ev.name) : '—'}</td>
-                    <td class="num ${isBest ? 'best' : ''}">${DF.utils.formatTime(p.time)}${isBest ? ' 🏆' : ''}</td>
-                    <td class="num">${DF.utils.formatSpeed(p.trapSpeed)}</td>
+                    <td class="num">${p.lane || '—'}</td>
+                    <td>${DF.pages.carDetail.passStatusBadge(p.status)}</td>
                     <td class="num">${p.reactionTime != null ? p.reactionTime.toFixed(3) : '—'}</td>
+                    <td class="num">${p.t60 != null ? p.t60.toFixed(3) : '—'}</td>
+                    <td class="num">${p.t100 != null ? p.t100.toFixed(3) : '—'}</td>
+                    <td class="num">${p.t201 != null ? p.t201.toFixed(3) : '—'}</td>
+                    <td class="num">${DF.utils.formatSpeed(p.trapSpeed)}</td>
+                    <td class="num ${isBest ? 'best' : ''}">${p.time != null ? DF.utils.formatTime(p.time) : '—'}${isBest ? ' 🏆' : ''}</td>
                   </tr>
                 `;
               }).join('')}
@@ -123,7 +154,10 @@ DF.pages.carDetail = {
         </div>
       ` : `<div class="empty-state" style="margin-bottom:var(--space-6)">Nenhuma passada registrada ainda.</div>`}
 
-      <div class="section-head"><div class="section-title">Inspeções</div></div>
+      <div class="section-head">
+        <div class="section-title">Inspeções</div>
+        <button class="btn btn-secondary btn-sm" id="btn-new-inspection">+ Nova inspeção</button>
+      </div>
       ${summary.inspections.length ? `
         <div class="table-wrap" style="margin-bottom:var(--space-6)">
           <table class="dt">
@@ -140,7 +174,30 @@ DF.pages.carDetail = {
             </tbody>
           </table>
         </div>
-      ` : `<div class="empty-state">Nenhuma inspeção registrada ainda.</div>`}
+      ` : `<div class="empty-state" style="margin-bottom:var(--space-6)">Nenhuma inspeção registrada ainda.</div>`}
+
+      <div class="section-head">
+        <div class="section-title">Histórico de manutenções</div>
+        <button class="btn btn-secondary btn-sm" id="btn-new-maintenance">+ Nova manutenção</button>
+      </div>
+      ${summary.maintenances.length ? `
+        <div class="table-wrap">
+          <table class="dt">
+            <thead><tr><th>Data</th><th>Serviço</th><th class="num">Km/h</th><th class="num">Custo</th><th>Observações</th></tr></thead>
+            <tbody>
+              ${summary.maintenances.map((m) => `
+                <tr>
+                  <td class="num">${DF.utils.formatDate(m.date)}</td>
+                  <td>${DF.utils.escapeHtml(m.type)}</td>
+                  <td class="num">${DF.utils.formatKm(m.km)}</td>
+                  <td class="num">${DF.utils.formatCurrency(m.cost)}</td>
+                  <td>${DF.utils.escapeHtml(m.notes || '—')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : `<div class="empty-state">Nenhuma manutenção registrada ainda.</div>`}
     `;
 
     // lightbox
@@ -158,12 +215,24 @@ DF.pages.carDetail = {
       e.stopPropagation();
       DF.ui.openCarForm(car, () => DF.router.render());
     });
+    root.querySelector('#btn-new-event').addEventListener('click', () => {
+      DF.ui.openEventForm(carId, () => DF.router.render());
+    });
+    root.querySelector('#btn-new-pass').addEventListener('click', () => {
+      DF.ui.openPassForm(carId, () => DF.router.render());
+    });
+    root.querySelector('#btn-new-inspection').addEventListener('click', () => {
+      DF.ui.openInspectionForm(carId, () => DF.router.render());
+    });
+    root.querySelector('#btn-new-maintenance').addEventListener('click', () => {
+      DF.ui.openMaintenanceForm(carId, () => DF.router.render());
+    });
 
     // chart
     if (summary.passes.length) {
       const byEvent = summary.events.slice().sort((a, b) => (a.date > b.date ? 1 : -1)).map((ev) => {
-        const evPasses = summary.passes.filter((p) => p.eventId === ev.id);
-        const best = evPasses.length ? Math.min(...evPasses.map((p) => p.time)) : null;
+        const evTimes = summary.passes.filter((p) => p.eventId === ev.id && p.status !== 'queimou' && typeof p.time === 'number' && !isNaN(p.time)).map((p) => p.time);
+        const best = evTimes.length ? Math.min(...evTimes) : null;
         return { label: DF.utils.formatDate(ev.date), best };
       }).filter((x) => x.best != null);
 

@@ -29,11 +29,30 @@ const carToDb = (c) => ({ id: c.id, name: c.name, pilot: c.pilot || null, catego
 const eventFromDb = (r) => ({ id: r.id, carId: r.car_id, name: r.name, location: r.location, date: r.date });
 const eventToDb = (e) => ({ id: e.id, car_id: e.carId, name: e.name, location: e.location || null, date: e.date });
 
-const passFromDb = (r) => ({ id: r.id, carId: r.car_id, eventId: r.event_id, date: r.date, time: r.time != null ? Number(r.time) : null, trapSpeed: r.trap_speed != null ? Number(r.trap_speed) : null, reactionTime: r.reaction_time != null ? Number(r.reaction_time) : null, notes: r.notes });
-const passToDb = (p) => ({ id: p.id, car_id: p.carId, event_id: p.eventId || null, date: p.date, time: p.time, trap_speed: p.trapSpeed, reaction_time: p.reactionTime, notes: p.notes || null });
+const passFromDb = (r) => ({
+  id: r.id, carId: r.car_id, eventId: r.event_id, date: r.date,
+  lane: r.lane, status: r.status || 'valido',
+  time: r.time != null ? Number(r.time) : null,
+  trapSpeed: r.trap_speed != null ? Number(r.trap_speed) : null,
+  reactionTime: r.reaction_time != null ? Number(r.reaction_time) : null,
+  t60: r.t_60 != null ? Number(r.t_60) : null,
+  t100: r.t_100 != null ? Number(r.t_100) : null,
+  t201: r.t_201 != null ? Number(r.t_201) : null,
+  notes: r.notes,
+});
+const passToDb = (p) => ({
+  id: p.id, car_id: p.carId, event_id: p.eventId || null, date: p.date,
+  lane: p.lane || null, status: p.status || 'valido',
+  time: p.time, trap_speed: p.trapSpeed, reaction_time: p.reactionTime,
+  t_60: p.t60, t_100: p.t100, t_201: p.t201,
+  notes: p.notes || null,
+});
 
 const inspFromDb = (r) => ({ id: r.id, carId: r.car_id, date: r.date, type: r.type, status: r.status, notes: r.notes });
 const inspToDb = (i) => ({ id: i.id, car_id: i.carId, date: i.date, type: i.type, status: i.status || 'ok', notes: i.notes || null });
+
+const maintFromDb = (r) => ({ id: r.id, carId: r.car_id, date: r.date, type: r.type, km: r.km != null ? Number(r.km) : null, cost: r.cost != null ? Number(r.cost) : null, notes: r.notes });
+const maintToDb = (m) => ({ id: m.id, car_id: m.carId, date: m.date, type: m.type, km: m.km != null && m.km !== '' ? Number(m.km) : null, cost: m.cost != null && m.cost !== '' ? Number(m.cost) : null, notes: m.notes || null });
 
 DF.dbSupabase = {
   uid(prefix) {
@@ -131,21 +150,39 @@ DF.dbSupabase = {
     return inspFromDb(data);
   },
 
+  // ---- Manutenções ----
+  async listMaintenancesByCar(carId) {
+    const { data, error } = await sbClient().from('maintenances').select('*').eq('car_id', carId).order('date', { ascending: false });
+    throwIfError(error);
+    return (data || []).map(maintFromDb);
+  },
+  async putMaintenance(m) {
+    const sb = sbClient();
+    const payload = maintToDb(m);
+    if (!payload.id) delete payload.id;
+    const { data, error } = payload.id
+      ? await sb.from('maintenances').update(payload).eq('id', payload.id).select().single()
+      : await sb.from('maintenances').insert(payload).select().single();
+    throwIfError(error);
+    return maintFromDb(data);
+  },
+
   // ---- Meta (não usado em modo Supabase — sem seed automático) ----
   async getMeta() { return undefined; },
   async setMeta() { /* no-op */ },
 
   // ---- Aggregations ----
   async getCarSummary(carId) {
-    const [passes, events, inspections] = await Promise.all([
+    const [passes, events, inspections, maintenances] = await Promise.all([
       DF.dbSupabase.listPassesByCar(carId),
       DF.dbSupabase.listEventsByCar(carId),
       DF.dbSupabase.listInspectionsByCar(carId),
+      DF.dbSupabase.listMaintenancesByCar(carId),
     ]);
-    const times = passes.map((p) => p.time).filter((t) => typeof t === 'number' && !isNaN(t));
+    const times = passes.filter((p) => p.status !== 'queimou').map((p) => p.time).filter((t) => typeof t === 'number' && !isNaN(t));
     const bestTime = times.length ? Math.min(...times) : null;
     const lastEvent = events[0] || null;
-    return { bestTime, totalPasses: passes.length, totalEvents: events.length, totalInspections: inspections.length, lastEvent, passes, events, inspections };
+    return { bestTime, totalPasses: passes.length, totalEvents: events.length, totalInspections: inspections.length, totalMaintenances: maintenances.length, lastEvent, passes, events, inspections, maintenances };
   },
 };
 

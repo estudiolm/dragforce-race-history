@@ -27,9 +27,7 @@ Por padrão o Supabase permite qualquer pessoa se cadastrar sozinha. Para um sis
 
 ### 1.2. O que já funciona no modo Supabase, e o que ainda não
 
-✅ Login real da equipe, cadastro/edição de carros, upload de fotos (guardadas no Storage do Supabase, não mais no navegador).
-
-⏳ Adicionar eventos, passadas e inspeções pela própria interface ainda não tem tela pronta (hoje isso só existe nos dados de exemplo, que ficam desligados no modo Supabase). Enquanto isso, dá pra cadastrar eventos/passadas/inspeções direto pela aba **Table Editor** do Supabase — as tabelas já têm exatamente os campos que a ficha do carro exibe. Se quiser, na próxima etapa eu construo essas telas também.
+✅ Login real da equipe, cadastro/edição de carros, upload de fotos (guardadas no Storage do Supabase, não mais no navegador), cadastro de **eventos**, **passadas**, **inspeções** e **manutenções** direto na ficha do carro.
 
 ---
 

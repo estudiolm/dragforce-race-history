@@ -43,6 +43,16 @@ DF.utils = {
     return new Date().toISOString().slice(0, 10);
   },
 
+  formatCurrency(value) {
+    if (value == null || isNaN(value)) return '—';
+    return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  },
+
+  formatKm(value) {
+    if (value == null || isNaN(value)) return '—';
+    return `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`;
+  },
+
   /**
    * Redimensiona e comprime uma imagem (File) para um dataURL JPEG,
    * mantendo proporção consistente (crop central 16:10) e tamanho otimizado

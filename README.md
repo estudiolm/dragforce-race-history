@@ -52,15 +52,18 @@ dragforce/
 
 ## Logos
 
-`assets/logos/` já usa as logos reais da equipe:
+`assets/logos/` já usa as logos reais da equipe, agora com fundo **transparente de verdade** (sem a caixa preta que aparecia atrás delas antigamente):
 
 | Arquivo                             | Onde aparece                                                          |
 |--------------------------------------|------------------------------------------------------------------------|
 | `assets/logos/dragforce-logo.png`    | Header, tela de login, página Sobre (wordmark "DragForce")             |
-| `assets/logos/dragforce-emblem.png`  | Favicon, hero da página Sobre, marca d'água na tela de login (caveira) |
+| `assets/logos/dragforce-emblem.png`  | Hero da página Sobre, marca d'água na tela de login (caveira)          |
 | `assets/logos/boostclub-logo.png`    | Rodapé, badge "Powered by", tela de login, página Sobre                |
+| `assets/logos/favicon.png` / `favicon-32.png` | Ícone da aba do navegador (emblema sobre uma placa escura arredondada) |
 
 Se um dia quiser atualizar alguma logo, **basta substituir o arquivo mantendo o mesmo nome** — nenhum ajuste de layout é necessário (os espaços já são dimensionados por altura, com largura automática). Os arquivos originais em alta resolução ficam em `assets/logos-original/` (não usados pelo site, só como material-fonte de backup).
+
+Se precisar reprocessar as logos a partir dos arquivos-fonte (ex.: trocar por uma versão nova), rode `python3 scripts/detransparentize_logos.py` — ele lê `assets/logos-original/*-final.png`, remove o fundo preto sólido e gera os arquivos finais em `assets/logos/` (requer `pillow`, `numpy` e `scipy`: `pip install pillow numpy scipy --break-system-packages`).
 
 ## Fotos dos carros
 
@@ -69,9 +72,27 @@ Se um dia quiser atualizar alguma logo, **basta substituir o arquivo mantendo o 
 * Sem foto cadastrada → usa o placeholder `assets/car-placeholder.svg` (ilustração abstrata de motorsport, não é a foto de nenhum carro real).
 * Clique na foto (card, ficha do carro) abre a visualização ampliada (lightbox).
 
+## Eventos e passadas
+
+Na ficha do carro, o botão **"+ Novo evento"** (seção Histórico de eventos) cadastra um evento (nome, local, data). O botão **"+ Nova passada"** (seção Últimas passadas) registra uma passada dentro de um evento já existente — se o carro ainda não tem nenhum evento, o sistema abre primeiro o cadastro de evento e encadeia automaticamente para o de passada. Campos de uma passada:
+
+* **Evento** (qual etapa/dia de pista) e **Pista** (E = esquerda ou D = direita).
+* **Status** — Válido ou Queimou (saída antecipada/largada queimada — não conta para o melhor tempo nem entra no gráfico de evolução).
+* **Reação**, **60 pés**, **100m**, **201m** (tempos parciais, em segundos) e **Vel. final** (velocidade no fim da pista, km/h).
+* **Total** — calculado automaticamente como reação + 201m assim que os dois campos são preenchidos; é esse valor que aparece como "melhor tempo" e alimenta o gráfico de evolução.
+
+## Inspeções e manutenções
+
+Na ficha do carro, os botões **"+ Nova inspeção"** e **"+ Nova manutenção"** abrem um formulário rápido para registrar:
+
+* **Inspeção** — data, tipo (ex.: inspeção técnica geral, paraquedas/gaiola), status (OK / Atenção / Crítico) e observações.
+* **Manutenção** — data, serviço realizado, km/horas (opcional), custo em R$ (opcional) e observações. Fica em uma seção separada, **Histórico de manutenções**, com sua própria tabela e contador no topo da página.
+
+Todas essas telas (eventos, passadas, inspeções, manutenções) ficam disponíveis nos dois modos (local e Supabase) e entram automaticamente na aba de dados correta.
+
 ## Dados de exemplo
 
-Na primeira vez que o sistema é aberto, ele cadastra automaticamente um carro de exemplo (**GOL AP 2.1**, sem foto) com eventos, passadas e inspeções fictícias, só para demonstrar o layout funcionando com dados reais. Isso acontece **uma única vez** — depois disso, os dados são só o que você cadastrar.
+Na primeira vez que o sistema é aberto, ele cadastra automaticamente um carro de exemplo (**GOL AP 2.1**, sem foto) com eventos, passadas, inspeções e manutenções fictícias, só para demonstrar o layout funcionando com dados reais. Isso acontece **uma única vez** — depois disso, os dados são só o que você cadastrar.
 
 Para recomeçar do zero (apagar tudo, inclusive o exemplo): abra o DevTools do navegador → aba *Application* → *IndexedDB* → apague o banco `dragforce-race-history` → recarregue a página.
 

@@ -196,6 +196,311 @@ DF.ui = {
       },
     });
   },
+
+  /**
+   * Abre o modal de cadastro de evento para um carro.
+   * onSaved(event) é chamado após persistir com sucesso.
+   */
+  openEventForm(carId, onSaved) {
+    const bodyHtml = `
+      <div class="field">
+        <label>Nome do evento</label>
+        <input type="text" id="ef-name" placeholder="Ex: Racing Club — Etapa 5" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Local</label>
+          <input type="text" id="ef-location" placeholder="Ex: Área 48" />
+        </div>
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="ef-date" value="${DF.utils.todayISO()}" />
+        </div>
+      </div>
+    `;
+    const footerHtml = `
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-primary" id="ef-save">Cadastrar evento</button>
+    `;
+    DF.ui.openModal({
+      title: 'Novo evento',
+      bodyHtml,
+      footerHtml,
+      onMount: (overlay, close) => {
+        overlay.querySelector('#ef-save').addEventListener('click', async () => {
+          const name = overlay.querySelector('#ef-name').value.trim();
+          const location = overlay.querySelector('#ef-location').value.trim();
+          const date = overlay.querySelector('#ef-date').value;
+          if (!name) { DF.utils.toast('Dê um nome ao evento para continuar.'); return; }
+          if (!date) { DF.utils.toast('Informe a data do evento.'); return; }
+
+          overlay.querySelector('#ef-save').disabled = true;
+          try {
+            const ev = await DF.db.putEvent({ carId, name, location, date });
+            close();
+            DF.utils.toast('Evento cadastrado.');
+            onSaved && onSaved(ev);
+          } catch (err) {
+            DF.utils.toast(err.message || 'Erro ao salvar o evento.');
+            overlay.querySelector('#ef-save').disabled = false;
+          }
+        });
+      },
+    });
+  },
+
+  /**
+   * Abre o modal de cadastro de passada para um carro. Exige pelo menos
+   * um evento já cadastrado (a passada pertence a um evento) — se não
+   * houver nenhum, abre primeiro o cadastro de evento e encadeia.
+   * onSaved(pass) é chamado após persistir com sucesso.
+   */
+  async openPassForm(carId, onSaved) {
+    const events = await DF.db.listEventsByCar(carId);
+    if (!events.length) {
+      DF.utils.toast('Cadastre um evento antes de registrar uma passada.');
+      DF.ui.openEventForm(carId, () => DF.ui.openPassForm(carId, onSaved));
+      return;
+    }
+
+    const bodyHtml = `
+      <div class="field">
+        <label>Evento</label>
+        <select id="pf-event">
+          ${events.map((ev) => `<option value="${ev.id}">${DF.utils.escapeHtml(ev.name)} — ${DF.utils.formatDate(ev.date)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Pista</label>
+          <select id="pf-lane">
+            <option value="E">Esquerda (E)</option>
+            <option value="D">Direita (D)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="pf-status">
+            <option value="valido">✅ Válido</option>
+            <option value="queimou">🔥 Queimou</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Reação (s)</label>
+          <input type="number" id="pf-reaction" step="0.001" placeholder="Ex: 0.045" />
+        </div>
+        <div class="field">
+          <label>Vel. final (km/h)</label>
+          <input type="number" id="pf-trap" step="0.1" min="0" placeholder="Ex: 165.4" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>60 pés (s)</label>
+          <input type="number" id="pf-t60" step="0.001" min="0" placeholder="Ex: 1.320" />
+        </div>
+        <div class="field">
+          <label>100m (s)</label>
+          <input type="number" id="pf-t100" step="0.001" min="0" placeholder="Ex: 5.210" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>201m (s)</label>
+          <input type="number" id="pf-t201" step="0.001" min="0" placeholder="Ex: 8.840" />
+        </div>
+        <div class="field">
+          <label>Total (reação + 201m)</label>
+          <input type="text" id="pf-total" disabled placeholder="—" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Observações (opcional)</label>
+        <textarea id="pf-notes" rows="2" placeholder="Condições da pista, ajustes..."></textarea>
+      </div>
+    `;
+    const footerHtml = `
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-primary" id="pf-save">Registrar passada</button>
+    `;
+    DF.ui.openModal({
+      title: 'Nova passada',
+      bodyHtml,
+      footerHtml,
+      onMount: (overlay, close) => {
+        const reactionInput = overlay.querySelector('#pf-reaction');
+        const t201Input = overlay.querySelector('#pf-t201');
+        const totalInput = overlay.querySelector('#pf-total');
+
+        const updateTotal = () => {
+          const r = reactionInput.value !== '' ? Number(reactionInput.value) : null;
+          const t = t201Input.value !== '' ? Number(t201Input.value) : null;
+          totalInput.value = (r != null && t != null && !isNaN(r) && !isNaN(t)) ? (r + t).toFixed(3) : '';
+        };
+        reactionInput.addEventListener('input', updateTotal);
+        t201Input.addEventListener('input', updateTotal);
+
+        overlay.querySelector('#pf-save').addEventListener('click', async () => {
+          const eventId = overlay.querySelector('#pf-event').value;
+          const ev = events.find((e) => e.id === eventId);
+          const lane = overlay.querySelector('#pf-lane').value;
+          const status = overlay.querySelector('#pf-status').value;
+          const num = (sel) => { const v = overlay.querySelector(sel).value; return v !== '' ? Number(v) : null; };
+          const reactionTime = num('#pf-reaction');
+          const trapSpeed = num('#pf-trap');
+          const t60 = num('#pf-t60');
+          const t100 = num('#pf-t100');
+          const t201 = num('#pf-t201');
+          const notes = overlay.querySelector('#pf-notes').value.trim();
+          const time = (reactionTime != null && t201 != null) ? +(reactionTime + t201).toFixed(3) : null;
+
+          overlay.querySelector('#pf-save').disabled = true;
+          try {
+            const pass = await DF.db.putPass({
+              carId, eventId, date: ev.date, lane, status,
+              reactionTime, trapSpeed, t60, t100, t201, time, notes,
+            });
+            close();
+            DF.utils.toast('Passada registrada.');
+            onSaved && onSaved(pass);
+          } catch (err) {
+            DF.utils.toast(err.message || 'Erro ao salvar a passada.');
+            overlay.querySelector('#pf-save').disabled = false;
+          }
+        });
+      },
+    });
+  },
+
+  /**
+   * Abre o modal de cadastro de inspeção técnica para um carro.
+   * onSaved(inspection) é chamado após persistir com sucesso.
+   */
+  openInspectionForm(carId, onSaved) {
+    const bodyHtml = `
+      <div class="field-row">
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="if-date" value="${DF.utils.todayISO()}" />
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="if-status">
+            <option value="ok">✅ OK</option>
+            <option value="attention">⚠️ Atenção</option>
+            <option value="critical">⛔ Crítico</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Tipo de inspeção</label>
+        <input type="text" id="if-type" placeholder="Ex: Inspeção técnica geral, paraquedas, gaiola..." />
+      </div>
+      <div class="field">
+        <label>Observações (opcional)</label>
+        <textarea id="if-notes" rows="3" placeholder="Detalhes do que foi verificado..."></textarea>
+      </div>
+    `;
+    const footerHtml = `
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-primary" id="if-save">Registrar inspeção</button>
+    `;
+    DF.ui.openModal({
+      title: 'Nova inspeção',
+      bodyHtml,
+      footerHtml,
+      onMount: (overlay, close) => {
+        overlay.querySelector('#if-save').addEventListener('click', async () => {
+          const date = overlay.querySelector('#if-date').value;
+          const status = overlay.querySelector('#if-status').value;
+          const type = overlay.querySelector('#if-type').value.trim();
+          const notes = overlay.querySelector('#if-notes').value.trim();
+          if (!date) { DF.utils.toast('Informe a data da inspeção.'); return; }
+          if (!type) { DF.utils.toast('Descreva o tipo de inspeção.'); return; }
+
+          overlay.querySelector('#if-save').disabled = true;
+          try {
+            const insp = await DF.db.putInspection({ carId, date, type, status, notes });
+            close();
+            DF.utils.toast('Inspeção registrada.');
+            onSaved && onSaved(insp);
+          } catch (err) {
+            DF.utils.toast(err.message || 'Erro ao salvar a inspeção.');
+            overlay.querySelector('#if-save').disabled = false;
+          }
+        });
+      },
+    });
+  },
+
+  /**
+   * Abre o modal de cadastro de manutenção para um carro.
+   * onSaved(maintenance) é chamado após persistir com sucesso.
+   */
+  openMaintenanceForm(carId, onSaved) {
+    const bodyHtml = `
+      <div class="field-row">
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="mf-date" value="${DF.utils.todayISO()}" />
+        </div>
+        <div class="field">
+          <label>Km / horas (opcional)</label>
+          <input type="number" id="mf-km" step="0.1" min="0" placeholder="Ex: 12500" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Serviço realizado</label>
+        <input type="text" id="mf-type" placeholder="Ex: Troca de óleo do motor, revisão de embreagem..." />
+      </div>
+      <div class="field">
+        <label>Custo em R$ (opcional)</label>
+        <input type="number" id="mf-cost" step="0.01" min="0" placeholder="Ex: 850.00" />
+      </div>
+      <div class="field">
+        <label>Observações (opcional)</label>
+        <textarea id="mf-notes" rows="3" placeholder="Peças trocadas, oficina, garantia..."></textarea>
+      </div>
+    `;
+    const footerHtml = `
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-primary" id="mf-save">Registrar manutenção</button>
+    `;
+    DF.ui.openModal({
+      title: 'Nova manutenção',
+      bodyHtml,
+      footerHtml,
+      onMount: (overlay, close) => {
+        overlay.querySelector('#mf-save').addEventListener('click', async () => {
+          const date = overlay.querySelector('#mf-date').value;
+          const km = overlay.querySelector('#mf-km').value;
+          const type = overlay.querySelector('#mf-type').value.trim();
+          const cost = overlay.querySelector('#mf-cost').value;
+          const notes = overlay.querySelector('#mf-notes').value.trim();
+          if (!date) { DF.utils.toast('Informe a data da manutenção.'); return; }
+          if (!type) { DF.utils.toast('Descreva o serviço realizado.'); return; }
+
+          overlay.querySelector('#mf-save').disabled = true;
+          try {
+            const maint = await DF.db.putMaintenance({
+              carId, date, type,
+              km: km !== '' ? Number(km) : null,
+              cost: cost !== '' ? Number(cost) : null,
+              notes,
+            });
+            close();
+            DF.utils.toast('Manutenção registrada.');
+            onSaved && onSaved(maint);
+          } catch (err) {
+            DF.utils.toast(err.message || 'Erro ao salvar a manutenção.');
+            overlay.querySelector('#mf-save').disabled = false;
+          }
+        });
+      },
+    });
+  },
 };
 
 window.DF = DF;

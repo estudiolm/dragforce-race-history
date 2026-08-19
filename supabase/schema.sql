@@ -28,17 +28,29 @@ create table if not exists public.events (
 );
 
 -- ---------- PASSADAS ----------
+-- time = tempo total (reação + 201m), é o valor usado para ranquear/gráfico.
 create table if not exists public.passes (
   id uuid primary key default gen_random_uuid(),
   car_id uuid not null references public.cars(id) on delete cascade,
   event_id uuid references public.events(id) on delete cascade,
   date date not null,
-  time numeric(6,3),
-  trap_speed numeric(6,1),
+  lane text check (lane in ('E', 'D')),
+  status text not null default 'valido' check (status in ('valido', 'queimou')),
   reaction_time numeric(5,3),
+  t_60 numeric(6,3),
+  t_100 numeric(6,3),
+  t_201 numeric(6,3),
+  trap_speed numeric(6,1),
+  time numeric(6,3),
   notes text,
   created_at timestamptz not null default now()
 );
+-- migração incremental (para quem já tinha a tabela antes destes campos existirem)
+alter table public.passes add column if not exists lane text check (lane in ('E', 'D'));
+alter table public.passes add column if not exists status text not null default 'valido' check (status in ('valido', 'queimou'));
+alter table public.passes add column if not exists t_60 numeric(6,3);
+alter table public.passes add column if not exists t_100 numeric(6,3);
+alter table public.passes add column if not exists t_201 numeric(6,3);
 
 -- ---------- INSPEÇÕES ----------
 create table if not exists public.inspections (
@@ -51,11 +63,24 @@ create table if not exists public.inspections (
   created_at timestamptz not null default now()
 );
 
+-- ---------- MANUTENÇÕES ----------
+create table if not exists public.maintenances (
+  id uuid primary key default gen_random_uuid(),
+  car_id uuid not null references public.cars(id) on delete cascade,
+  date date not null,
+  type text not null,
+  km numeric(10,1),
+  cost numeric(10,2),
+  notes text,
+  created_at timestamptz not null default now()
+);
+
 -- ---------- ÍNDICES ----------
 create index if not exists idx_events_car_id on public.events(car_id);
 create index if not exists idx_passes_car_id on public.passes(car_id);
 create index if not exists idx_passes_event_id on public.passes(event_id);
 create index if not exists idx_inspections_car_id on public.inspections(car_id);
+create index if not exists idx_maintenances_car_id on public.maintenances(car_id);
 
 -- ---------- ROW LEVEL SECURITY ----------
 -- Regra simples para equipe pequena e privada: qualquer usuário autenticado
@@ -66,6 +91,7 @@ alter table public.cars enable row level security;
 alter table public.events enable row level security;
 alter table public.passes enable row level security;
 alter table public.inspections enable row level security;
+alter table public.maintenances enable row level security;
 
 drop policy if exists "team full access" on public.cars;
 create policy "team full access" on public.cars
@@ -81,6 +107,10 @@ create policy "team full access" on public.passes
 
 drop policy if exists "team full access" on public.inspections;
 create policy "team full access" on public.inspections
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+drop policy if exists "team full access" on public.maintenances;
+create policy "team full access" on public.maintenances
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- ---------- STORAGE (fotos dos carros) ----------

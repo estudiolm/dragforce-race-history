@@ -8,7 +8,7 @@
    ========================================================= */
 
 const DF_DB_NAME = 'dragforce-race-history';
-const DF_DB_VERSION = 1;
+const DF_DB_VERSION = 2;
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -34,6 +34,11 @@ function openDatabase() {
         const insp = db.createObjectStore('inspections', { keyPath: 'id' });
         insp.createIndex('carId', 'carId');
         insp.createIndex('date', 'date');
+      }
+      if (!db.objectStoreNames.contains('maintenances')) {
+        const maint = db.createObjectStore('maintenances', { keyPath: 'id' });
+        maint.createIndex('carId', 'carId');
+        maint.createIndex('date', 'date');
       }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta', { keyPath: 'key' });
@@ -106,9 +111,11 @@ DF.dbLocal = {
     return all.sort((a, b) => (a.date < b.date ? 1 : -1));
   },
   async putEvent(ev) {
+    const toSave = { ...ev };
+    if (!toSave.id) toSave.id = uid('evt');
     const store = await tx('events', 'readwrite');
-    await reqToPromise(store.put(ev));
-    return ev;
+    await reqToPromise(store.put(toSave));
+    return toSave;
   },
 
   // ---- Passes ----
@@ -119,9 +126,11 @@ DF.dbLocal = {
     return all.sort((a, b) => (a.date < b.date ? 1 : -1));
   },
   async putPass(p) {
+    const toSave = { ...p };
+    if (!toSave.id) toSave.id = uid('pass');
     const store = await tx('passes', 'readwrite');
-    await reqToPromise(store.put(p));
-    return p;
+    await reqToPromise(store.put(toSave));
+    return toSave;
   },
 
   // ---- Inspections ----
@@ -132,9 +141,26 @@ DF.dbLocal = {
     return all.sort((a, b) => (a.date < b.date ? 1 : -1));
   },
   async putInspection(i) {
+    const toSave = { ...i };
+    if (!toSave.id) toSave.id = uid('insp');
     const store = await tx('inspections', 'readwrite');
-    await reqToPromise(store.put(i));
-    return i;
+    await reqToPromise(store.put(toSave));
+    return toSave;
+  },
+
+  // ---- Manutenções ----
+  async listMaintenancesByCar(carId) {
+    const store = await tx('maintenances');
+    const idx = store.index('carId');
+    const all = await reqToPromise(idx.getAll(carId));
+    return all.sort((a, b) => (a.date < b.date ? 1 : -1));
+  },
+  async putMaintenance(m) {
+    const toSave = { ...m };
+    if (!toSave.id) toSave.id = uid('maint');
+    const store = await tx('maintenances', 'readwrite');
+    await reqToPromise(store.put(toSave));
+    return toSave;
   },
 
   // ---- Meta (seed flag, settings) ----
@@ -150,12 +176,13 @@ DF.dbLocal = {
 
   // ---- Aggregations ----
   async getCarSummary(carId) {
-    const [passes, events, inspections] = await Promise.all([
+    const [passes, events, inspections, maintenances] = await Promise.all([
       DF.dbLocal.listPassesByCar(carId),
       DF.dbLocal.listEventsByCar(carId),
       DF.dbLocal.listInspectionsByCar(carId),
+      DF.dbLocal.listMaintenancesByCar(carId),
     ]);
-    const times = passes.map((p) => p.time).filter((t) => typeof t === 'number' && !isNaN(t));
+    const times = passes.filter((p) => p.status !== 'queimou').map((p) => p.time).filter((t) => typeof t === 'number' && !isNaN(t));
     const bestTime = times.length ? Math.min(...times) : null;
     const lastEvent = events[0] || null;
     return {
@@ -163,10 +190,12 @@ DF.dbLocal = {
       totalPasses: passes.length,
       totalEvents: events.length,
       totalInspections: inspections.length,
+      totalMaintenances: maintenances.length,
       lastEvent,
       passes,
       events,
       inspections,
+      maintenances,
     };
   },
 };
