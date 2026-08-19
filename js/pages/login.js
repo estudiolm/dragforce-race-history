@@ -16,16 +16,16 @@ DF.pages.login = {
       <div class="auth-shell">
         <img class="auth-shell__watermark" src="assets/logos/dragforce-emblem.png" alt="" aria-hidden="true" />
         <div class="auth-card">
-          <img class="brand__logo" src="assets/logos/dragforce-logo.png" alt="DragForce" />
+          <span class="wordmark"><span class="wordmark__drag">Drag</span><span class="wordmark__force">Force</span></span>
           <div class="auth-card__tag">${DF.mode === 'supabase' ? 'Área da equipe — acesso restrito' : 'Área da equipe — modo local (sem login real ainda)'}</div>
           <form id="login-form">
             <div class="field">
-              <label>E-mail</label>
-              <input type="email" id="login-email" placeholder="voce@equipe.com" required />
+              <label>Usuário</label>
+              <input type="text" id="login-username" placeholder="Seu usuário" autocomplete="username" required />
             </div>
             <div class="field">
               <label>Senha</label>
-              <input type="password" id="login-password" placeholder="••••••••" required />
+              <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
             </div>
             <button type="submit" class="btn btn-primary btn-block" style="margin-top:6px" id="login-submit">Entrar</button>
             ${DF.mode === 'supabase' ? '' : '<a href="#/" class="btn btn-ghost btn-block">Continuar sem login</a>'}
@@ -46,13 +46,13 @@ DF.pages.login = {
         window.location.hash = '#/';
         return;
       }
-      const email = root.querySelector('#login-email').value.trim();
+      const username = root.querySelector('#login-username').value.trim();
       const password = root.querySelector('#login-password').value;
       const btn = root.querySelector('#login-submit');
       btn.disabled = true;
       btn.textContent = 'Entrando...';
       try {
-        await DF.auth.signIn(email, password);
+        await DF.auth.signIn(username, password);
         window.location.hash = '#/';
       } catch (err) {
         DF.utils.toast(err.message || 'Não foi possível entrar.');

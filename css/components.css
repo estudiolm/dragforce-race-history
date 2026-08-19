@@ -326,14 +326,14 @@ table.dt td.best { color: var(--df-red-bright); font-weight: 700; font-family: v
   padding: var(--space-7) var(--space-6); box-shadow: var(--shadow-lg);
   text-align: center;
 }
-.auth-card .brand__logo { height: 40px; margin: 0 auto var(--space-2); }
+.auth-card .wordmark { font-size: 34px; margin: 0 auto var(--space-2); }
 .auth-card__tag { color: var(--text-muted); font-size: 13px; margin-bottom: var(--space-6); }
 .auth-card form { display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
 .auth-card__footer { margin-top: var(--space-6); padding-top: var(--space-5); border-top: 1px solid var(--border-subtle); }
 
 /* ---------- About page ---------- */
 .about-hero { text-align: center; padding: var(--space-7) 0 var(--space-6); }
-.about-hero .brand__logo { height: 40px; margin: 0 auto; }
+.about-hero .wordmark { font-size: 36px; margin: 0 auto; }
 .about-hero p { max-width: 640px; margin: var(--space-4) auto 0; color: var(--text-secondary); }
 .about-hero__emblem {
   height: 148px; width: auto; margin: 0 auto;
@@ -352,6 +352,7 @@ table.dt td.best { color: var(--df-red-bright); font-weight: 700; font-family: v
   background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);
 }
 .about-card img { height: 30px; margin-bottom: var(--space-4); }
+.about-card .wordmark { font-size: 24px; margin-bottom: var(--space-4); }
 .about-card h3 { font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 0.04em; font-size: 18px; margin-bottom: var(--space-3); }
 .about-card p { color: var(--text-secondary); font-size: 14px; }
 

@@ -36,8 +36,35 @@
 }
 
 .brand { display: flex; align-items: center; gap: var(--space-3); }
-.brand__logo { height: 32px; width: auto; display: block; }
-.brand__logo--mark { height: 34px; width: 34px; border-radius: 9px; display: none; }
+
+/* ---------- Wordmark (texto "DragForce", sem moldura/pílula ao redor) ---------- */
+.wordmark {
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  transform: skewX(-8deg);
+  white-space: nowrap;
+}
+.wordmark__drag,
+.wordmark__force {
+  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.65);
+  paint-order: stroke fill;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.wordmark__drag {
+  background: var(--chrome-gradient);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+.wordmark__force {
+  background: var(--df-gradient);
+  filter: drop-shadow(0 2px 4px rgba(224, 7, 16, 0.35));
+}
+.brand .wordmark { font-size: 21px; }
 
 .main-nav { display: flex; align-items: center; gap: var(--space-1); flex: 1; }
 .main-nav a {

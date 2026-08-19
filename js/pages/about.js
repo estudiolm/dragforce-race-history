@@ -11,7 +11,7 @@ DF.pages.about = {
       <div class="page--narrow" style="margin:0 auto">
         <div class="about-hero">
           <img class="about-hero__emblem" src="assets/logos/dragforce-emblem.png" alt="DragForce Motorsport" />
-          <img class="brand__logo" src="assets/logos/dragforce-logo.png" alt="DragForce" style="margin-top:var(--space-4)" />
+          <span class="wordmark" style="margin-top:var(--space-4)"><span class="wordmark__drag">Drag</span><span class="wordmark__force">Force</span></span>
           <div class="eyebrow" style="margin-top:var(--space-4)">Sobre a plataforma</div>
           <h1 class="page-title" style="margin-top:8px">A ficha digital da sua equipe</h1>
           <p>O DragForce Race History centraliza carros, eventos, passadas e inspeções da equipe em um único lugar — com o mesmo rigor de dados de uma equipe profissional de competição.</p>
@@ -19,7 +19,7 @@ DF.pages.about = {
 
         <div class="about-grid">
           <div class="about-card">
-            <img src="assets/logos/dragforce-logo.png" alt="DragForce" />
+            <span class="wordmark"><span class="wordmark__drag">Drag</span><span class="wordmark__force">Force</span></span>
             <h3>DragForce</h3>
             <p>Marca e identidade do sistema de gestão de competição da equipe: garagem, histórico de eventos, evolução de tempos e inspeções técnicas, tudo em uma ficha digital por carro.</p>
           </div>

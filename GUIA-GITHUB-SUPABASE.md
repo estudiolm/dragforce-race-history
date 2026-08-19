@@ -16,18 +16,34 @@ Nenhum dos dois é obrigatório para usar o sistema — ele já funciona sozinho
 - `js/config.js` já está preenchido com a URL e a chave `anon` reais desse projeto — o site já está rodando em **modo Supabase** (a tela de login agora exige um usuário de verdade).
 - Verifiquei os avisos de segurança (advisors) do projeto: nenhum encontrado.
 
-Só faltam os dois passos abaixo, que só dá pra fazer pelo painel do Supabase (não há uma ferramenta seguindo o padrão de segurança do Supabase para isso via API):
+### 1.1. Criar a conta técnica (passo manual, único, só dá pra fazer pelo painel)
 
-### 1.1. Criar os usuários da equipe
+O login da equipe **não** pede e-mail — pede usuário e senha simples, definidos direto no código (`js/users.js`, ver seção **Login da equipe** abaixo). Por trás dos panos, o sistema precisa de uma conta real do Supabase para manter as regras de segurança do banco funcionando — essa conta é só técnica, ninguém faz login com ela diretamente. Falta criar ela uma única vez:
 
-Por padrão o Supabase permite qualquer pessoa se cadastrar sozinha. Para um sistema de equipe, o mais seguro é **você criar as contas manualmente** e desativar o cadastro público:
+1. No painel do Supabase, vá em **Authentication → Users → Add user → Create new user**.
+2. E-mail: `sistema@dragforce.local`
+3. Senha: `n4T8TrcsOrG3CXF2lqwexs38`
+4. Marque **"Auto Confirm User"** (evita precisar confirmar por e-mail de verdade — esse endereço não existe).
+5. Salve.
 
-1. Vá em **Authentication → Providers → Email** e desative **"Enable email signups"**.
-2. Vá em **Authentication → Users → Add user → Create new user**. Cadastre o e-mail e uma senha para cada piloto/membro da equipe que vai usar o sistema.
+Essas credenciais já estão em `js/config.js` (`serviceAuthEmail`/`serviceAuthPassword`) — não precisa copiar nada, só criar a conta com exatamente esse e-mail e essa senha no painel.
 
-### 1.2. O que já funciona no modo Supabase, e o que ainda não
+### 1.2. Login da equipe (usuário e senha, sem e-mail)
 
-✅ Login real da equipe, cadastro/edição de carros, upload de fotos (guardadas no Storage do Supabase, não mais no navegador), cadastro de **eventos**, **passadas**, **inspeções** e **manutenções** direto na ficha do carro.
+Quem realmente entra no sistema (ex.: Leandro, Fernando) está listado em `js/users.js`, direto no código:
+
+```js
+window.DF_USERS = [
+  { username: 'leandro', password: 'l1234', name: 'Leandro', role: 'admin' },
+  { username: 'fernando', password: 'admin123456', name: 'Fernando', role: 'admin' },
+];
+```
+
+Para adicionar, remover ou trocar a senha de alguém: edite esse arquivo e publique de novo (GitHub Desktop: commit + push) — não precisa mexer no Supabase para isso. **Atenção:** como o site é público, essas senhas ficam visíveis pra quem abrir o código-fonte da página — é uma trava simples para uma equipe pequena e de confiança, não o mesmo nível de proteção de uma senha guardada criptografada no servidor. Não reutilize aqui uma senha importante de outro lugar.
+
+### 1.3. O que já funciona no modo Supabase
+
+✅ Login da equipe (usuário/senha), cadastro/edição de carros, upload de fotos (guardadas no Storage do Supabase, não mais no navegador), cadastro de **eventos**, **passadas**, **inspeções** e **manutenções** direto na ficha do carro.
 
 ---
 
@@ -81,7 +97,7 @@ O site é 100% estático (HTML/CSS/JS puro) — dá pra publicar de graça em qu
 ## Resumo da ordem recomendada
 
 1. ~~Criar projeto Supabase → rodar schema → colar credenciais~~ — já feito.
-2. No painel do Supabase: desativar cadastro público e criar o login de cada membro da equipe (**Parte 1.1** acima).
+2. No painel do Supabase: criar a conta técnica única (**Parte 1.1** acima) — só essa vez, os logins da equipe em si ficam no código (**Parte 1.2**).
 3. Testar localmente (abrindo `index.html`) que o login e o cadastro de carro/foto já estão indo pro Supabase.
 4. Criar o repositório no GitHub → `git push` (**Parte 2** acima).
 5. (Opcional) conectar o repositório a um Vercel/Netlify para ter uma URL pública e atualizações automáticas a cada push.

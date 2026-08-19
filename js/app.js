@@ -68,7 +68,7 @@ async function updateAccountButton() {
   const user = await DF.auth.getUser();
   if (user) {
     btn.href = '#';
-    btn.title = `Sair (${user.email})`;
+    btn.title = `Sair (${user.name})`;
     btn.onclick = async (e) => {
       e.preventDefault();
       await DF.auth.signOut();

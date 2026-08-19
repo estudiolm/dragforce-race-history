@@ -32,9 +32,10 @@ dragforce/
 │   └── components.css      → cards, botões, tabelas, timeline, modais, uploader...
 ├── js/
 │   ├── config.js               → credenciais do Supabase (vazio = modo local)
+│   ├── users.js                 → lista de usuário/senha da equipe (login sem e-mail)
 │   ├── db.js                    → camada de dados local (IndexedDB) → DF.dbLocal
 │   ├── db-supabase.js           → camada de dados Supabase (mesma interface) → DF.dbSupabase
-│   ├── auth.js                   → login/logout real (só ativo no modo Supabase)
+│   ├── auth.js                   → login/logout (só ativo no modo Supabase, ver js/users.js)
 │   ├── utils.js                   → formatação, compressão de imagem, toasts
 │   ├── ui.js                       → modais, lightbox, formulário de carro
 │   ├── seed.js                     → dados de exemplo (só no modo local, 1ª execução)
@@ -56,12 +57,13 @@ dragforce/
 
 | Arquivo                             | Onde aparece                                                          |
 |--------------------------------------|------------------------------------------------------------------------|
-| `assets/logos/dragforce-logo.png`    | Header, tela de login, página Sobre (wordmark "DragForce")             |
 | `assets/logos/dragforce-emblem.png`  | Hero da página Sobre, marca d'água na tela de login (caveira)          |
 | `assets/logos/boostclub-logo.png`    | Rodapé, badge "Powered by", tela de login, página Sobre                |
 | `assets/logos/favicon.png` / `favicon-32.png` | Ícone da aba do navegador (emblema sobre uma placa escura arredondada) |
 
 Se um dia quiser atualizar alguma logo, **basta substituir o arquivo mantendo o mesmo nome** — nenhum ajuste de layout é necessário (os espaços já são dimensionados por altura, com largura automática). Os arquivos originais em alta resolução ficam em `assets/logos-original/` (não usados pelo site, só como material-fonte de backup).
+
+O nome "DragForce" no header, na tela de login e na página Sobre **não é mais uma imagem** — é texto de verdade, estilizado em CSS (classe `.wordmark`, em `css/layout.css`), sem a moldura/pílula preta que tinha na logo original. Para mudar a cor, o tamanho ou a fonte, é só editar essa classe; para trocar a imagem da caveira (emblema), continua sendo `assets/logos/dragforce-emblem.png` normalmente.
 
 Se precisar reprocessar as logos a partir dos arquivos-fonte (ex.: trocar por uma versão nova), rode `python3 scripts/detransparentize_logos.py` — ele lê `assets/logos-original/*-final.png`, remove o fundo preto sólido e gera os arquivos finais em `assets/logos/` (requer `pillow`, `numpy` e `scipy`: `pip install pillow numpy scipy --break-system-packages`).
 
@@ -107,4 +109,6 @@ O passo a passo completo para ativar o modo Supabase (e também para colocar o c
 
 ## Tela de login
 
-No modo local, a tela `#/login` é só a camada visual/UX (qualquer e-mail/senha leva ao dashboard, sem checar nada) — ela existe para já reservar o espaço visual e a assinatura Boost Club. No modo Supabase, o login passa a ser real: exige um usuário cadastrado no projeto (ver guia) e protege todas as rotas do sistema.
+No modo local, a tela `#/login` é só a camada visual/UX (qualquer usuário/senha leva ao dashboard, sem checar nada) — ela existe para já reservar o espaço visual e a assinatura Boost Club. No modo Supabase, o login passa a checar de verdade: usuário e senha (sem e-mail) contra a lista fixa em `js/users.js`, e protege todas as rotas do sistema.
+
+Não é uma tela de "esqueci minha senha" nem tem cadastro público — é uma lista curta e de confiança, pensada para uma equipe pequena. Ver a seção **Login da equipe** em [`GUIA-GITHUB-SUPABASE.md`](./GUIA-GITHUB-SUPABASE.md) para entender como funciona por trás dos panos (e por que ainda existe uma conta técnica única no Supabase).
