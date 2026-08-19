@@ -183,7 +183,8 @@ DF.dbSupabase = {
       DF.dbSupabase.listInspectionsByCar(carId),
       DF.dbSupabase.listMaintenancesByCar(carId),
     ]);
-    const times = passes.filter((p) => p.status !== 'queimou').map((p) => p.time).filter((t) => typeof t === 'number' && !isNaN(t));
+    // "Melhor tempo" considera só o 201m (sem a reação) — é o tempo de pista de verdade
+    const times = passes.filter((p) => p.status !== 'queimou').map((p) => p.t201).filter((t) => typeof t === 'number' && !isNaN(t));
     const bestTime = times.length ? Math.min(...times) : null;
     const lastEvent = events[0] || null;
     return { bestTime, totalPasses: passes.length, totalEvents: events.length, totalInspections: inspections.length, totalMaintenances: maintenances.length, lastEvent, passes, events, inspections, maintenances };

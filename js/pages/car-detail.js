@@ -97,7 +97,7 @@ DF.pages.carDetail = {
         <div class="timeline" style="margin-bottom:var(--space-6)">
           ${summary.events.map((ev) => {
             const evPasses = summary.passes.filter((p) => p.eventId === ev.id);
-            const evTimes = evPasses.filter((p) => p.status !== 'queimou' && typeof p.time === 'number' && !isNaN(p.time)).map((p) => p.time);
+            const evTimes = evPasses.filter((p) => p.status !== 'queimou' && typeof p.t201 === 'number' && !isNaN(p.t201)).map((p) => p.t201);
             const evBest = evTimes.length ? Math.min(...evTimes) : null;
             return `
               <div class="timeline-item">
@@ -133,7 +133,7 @@ DF.pages.carDetail = {
             <tbody>
               ${summary.passes.slice(0, 12).map((p) => {
                 const ev = summary.events.find((e) => e.id === p.eventId);
-                const isBest = p.status !== 'queimou' && summary.bestTime != null && p.time === summary.bestTime;
+                const isBest = p.status !== 'queimou' && summary.bestTime != null && p.t201 === summary.bestTime;
                 return `
                   <tr>
                     <td class="num">${DF.utils.formatDate(p.date)}</td>
@@ -143,9 +143,9 @@ DF.pages.carDetail = {
                     <td class="num">${p.reactionTime != null ? p.reactionTime.toFixed(3) : '—'}</td>
                     <td class="num">${p.t60 != null ? p.t60.toFixed(3) : '—'}</td>
                     <td class="num">${p.t100 != null ? p.t100.toFixed(3) : '—'}</td>
-                    <td class="num">${p.t201 != null ? p.t201.toFixed(3) : '—'}</td>
+                    <td class="num ${isBest ? 'best' : ''}">${p.t201 != null ? p.t201.toFixed(3) : '—'}${isBest ? ' 🏆' : ''}</td>
                     <td class="num">${DF.utils.formatSpeed(p.trapSpeed)}</td>
-                    <td class="num ${isBest ? 'best' : ''}">${p.time != null ? DF.utils.formatTime(p.time) : '—'}${isBest ? ' 🏆' : ''}</td>
+                    <td class="num">${p.time != null ? DF.utils.formatTime(p.time) : '—'}</td>
                     <td style="white-space:nowrap">
                       <button class="btn-icon-sm" data-edit-pass="${p.id}" title="Editar passada" aria-label="Editar passada">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -261,7 +261,7 @@ DF.pages.carDetail = {
     // chart
     if (summary.passes.length) {
       const byEvent = summary.events.slice().sort((a, b) => (a.date > b.date ? 1 : -1)).map((ev) => {
-        const evTimes = summary.passes.filter((p) => p.eventId === ev.id && p.status !== 'queimou' && typeof p.time === 'number' && !isNaN(p.time)).map((p) => p.time);
+        const evTimes = summary.passes.filter((p) => p.eventId === ev.id && p.status !== 'queimou' && typeof p.t201 === 'number' && !isNaN(p.t201)).map((p) => p.t201);
         const best = evTimes.length ? Math.min(...evTimes) : null;
         return { label: DF.utils.formatDate(ev.date), best };
       }).filter((x) => x.best != null);
