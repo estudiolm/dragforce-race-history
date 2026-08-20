@@ -128,6 +128,10 @@ DF.dbLocal = {
   async putPass(p) {
     const toSave = { ...p };
     if (!toSave.id) toSave.id = uid('pass');
+    // createdAt marca a ordem real de registro das passadas (usado pra saber
+    // "1ª, 2ª, 3ª passada..." dentro de um evento) — só é gerado na criação;
+    // ao editar, o chamador (DF.ui.openPassForm) já reenvia o valor original
+    if (!toSave.createdAt) toSave.createdAt = new Date().toISOString();
     const store = await tx('passes', 'readwrite');
     await reqToPromise(store.put(toSave));
     return toSave;
@@ -187,11 +191,12 @@ DF.dbLocal = {
       DF.dbLocal.listMaintenancesByCar(carId),
     ]);
     // "Melhor tempo" considera só o 201m (sem a reação) — é o tempo de pista de verdade
-    const times = passes.filter((p) => p.status !== 'queimou').map((p) => p.t201).filter((t) => typeof t === 'number' && !isNaN(t));
-    const bestTime = times.length ? Math.min(...times) : null;
+    const { bestTime, bestLane, laneBest } = DF.utils.laneStats(passes);
     const lastEvent = events[0] || null;
     return {
       bestTime,
+      bestLane,
+      laneBest,
       totalPasses: passes.length,
       totalEvents: events.length,
       totalInspections: inspections.length,

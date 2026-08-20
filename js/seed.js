@@ -47,6 +47,10 @@ DF.seed = {
         passCount++;
         const lane = passCount % 2 === 0 ? 'D' : 'E';
 
+        // ordem real dentro do evento (1ª, 2ª, 3ª passada...) — cada tentativa uns
+        // minutos depois da anterior no mesmo dia de evento
+        const createdAt = new Date(new Date(events[i].date + 'T09:00:00').getTime() + j * 6 * 60000).toISOString();
+
         // ~1 a cada 8 passadas "queima" a largada (sai no vermelho) — sem tempo válido
         const queimou = passCount % 8 === 0;
         if (queimou) {
@@ -55,6 +59,7 @@ DF.seed = {
             carId,
             eventId: evId,
             date: events[i].date,
+            createdAt,
             lane,
             status: 'queimou',
             reactionTime: +(-(0.005 + Math.random() * 0.06)).toFixed(3),
@@ -79,6 +84,7 @@ DF.seed = {
           carId,
           eventId: evId,
           date: events[i].date,
+          createdAt,
           lane,
           status: 'valido',
           reactionTime,

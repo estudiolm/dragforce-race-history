@@ -13,8 +13,22 @@ DF.pages.dashboard = {
     const summaries = await Promise.all(cars.map((c) => DF.db.getCarSummary(c.id)));
     const totalPasses = summaries.reduce((s, x) => s + x.totalPasses, 0);
     const totalEvents = new Set(summaries.flatMap((x) => x.events.map((e) => e.location + e.date))).size;
-    const bestTimes = summaries.map((x) => x.bestTime).filter((t) => t != null);
-    const overallBest = bestTimes.length ? Math.min(...bestTimes) : null;
+
+    // melhor tempo da equipe (entre todos os carros) + em qual carro/pista aconteceu,
+    // e o melhor tempo de cada lado da pista somando todos os carros — mesmo critério
+    // "só 201m" usado em cada carro (DF.utils.laneStats), aplicado ao conjunto todo
+    let overallBest = null, overallBestCar = null, overallBestLane = null;
+    const teamLaneBest = { E: null, D: null };
+    cars.forEach((car, i) => {
+      const s = summaries[i];
+      if (s.bestTime != null && (overallBest == null || s.bestTime < overallBest)) {
+        overallBest = s.bestTime; overallBestCar = car; overallBestLane = s.bestLane;
+      }
+      ['E', 'D'].forEach((lane) => {
+        const v = s.laneBest && s.laneBest[lane];
+        if (v != null && (teamLaneBest[lane] == null || v < teamLaneBest[lane])) teamLaneBest[lane] = v;
+      });
+    });
 
     // pega o carro com atividade mais recente
     let recent = [];
@@ -38,6 +52,11 @@ DF.pages.dashboard = {
         <div class="stat-tile stat-tile--accent">
           <div class="stat-tile__label">🏆 Melhor tempo da equipe</div>
           <div class="stat-tile__value">${overallBest != null ? DF.utils.formatTime(overallBest) : '—'}</div>
+          ${overallBestCar ? `<div class="stat-tile__delta">${DF.utils.escapeHtml(overallBestCar.name)}${overallBestLane ? ` · Pista ${overallBestLane}` : ''}</div>` : ''}
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">🛣️ Melhor por lado</div>
+          ${DF.utils.laneCompareHtml(teamLaneBest)}
         </div>
         <div class="stat-tile">
           <div class="stat-tile__label">🚗 Carros na garagem</div>

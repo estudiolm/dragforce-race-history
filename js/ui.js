@@ -395,7 +395,7 @@ DF.ui = {
           overlay.querySelector('#pf-save').disabled = true;
           try {
             const pass = await DF.db.putPass({
-              ...(isEdit ? { id: existingPass.id } : {}),
+              ...(isEdit ? { id: existingPass.id, createdAt: existingPass.createdAt } : {}),
               carId, eventId, date: ev.date, lane, status,
               reactionTime, trapSpeed, t60, t100, t201, time, notes,
             });

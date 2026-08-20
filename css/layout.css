@@ -17,6 +17,15 @@
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid var(--border-subtle);
 }
+/* App instalado (PWA) no iPhone/Android: a barra de status fica sobreposta
+   ao conteúdo (status bar "translúcida") — sem isso o header ficaria por
+   baixo do relógio/notch. env(safe-area-inset-*) só funciona com
+   viewport-fit=cover (já setado no <head>) e cai pra 0px sozinho em
+   navegador comum, então é seguro deixar sempre ligado. */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .app-header { height: calc(var(--header-height) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+  .app-footer { padding-bottom: env(safe-area-inset-bottom); }
+}
 .app-header::after {
   content: '';
   position: absolute;

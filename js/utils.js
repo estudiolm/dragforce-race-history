@@ -15,6 +15,50 @@ DF.utils = {
       .replace(/'/g, '&#039;');
   },
 
+  /**
+   * A partir da lista de passadas de um carro, calcula o melhor tempo (só
+   * 201m, sem reação — mesmo critério da 7ª leva), em qual pista (E/D) ele
+   * foi cravado, e o melhor tempo de cada pista separadamente (pra comparar
+   * se o carro rende mais de um lado ou do outro). Usado por getCarSummary
+   * nos dois backends (db.js e db-supabase.js), que só chamam essa função.
+   */
+  laneStats(passes) {
+    const valid = passes.filter((p) => p.status !== 'queimou' && typeof p.t201 === 'number' && !isNaN(p.t201));
+    let bestTime = null;
+    let bestLane = null;
+    const laneBest = { E: null, D: null };
+    for (const p of valid) {
+      if (bestTime == null || p.t201 < bestTime) { bestTime = p.t201; bestLane = p.lane || null; }
+      if (p.lane === 'E' || p.lane === 'D') {
+        if (laneBest[p.lane] == null || p.t201 < laneBest[p.lane]) laneBest[p.lane] = p.t201;
+      }
+    }
+    return { bestTime, bestLane, laneBest };
+  },
+
+  // Comparativo "melhor tempo na pista E" x "melhor tempo na pista D" — mostra
+  // qual lado da pista rende mais (o lado mais rápido, quando os dois já têm
+  // dado, ganha destaque na cor de marca). Usado tanto na ficha do carro
+  // quanto no dashboard geral da equipe (com laneBest agregado dos carros).
+  laneCompareHtml(laneBest) {
+    const e = laneBest && laneBest.E;
+    const d = laneBest && laneBest.D;
+    const eWins = e != null && (d == null || e < d);
+    const dWins = d != null && (e == null || d < e);
+    return `
+      <div style="display:flex;gap:var(--space-5);align-items:baseline;font-family:var(--font-mono)">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.08em">E</div>
+          <div style="font-size:22px;font-weight:600;color:${eWins ? 'var(--df-red-bright)' : 'var(--text-primary)'}">${e != null ? e.toFixed(3) + 's' : '—'}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.08em">D</div>
+          <div style="font-size:22px;font-weight:600;color:${dWins ? 'var(--df-red-bright)' : 'var(--text-primary)'}">${d != null ? d.toFixed(3) + 's' : '—'}</div>
+        </div>
+      </div>
+    `;
+  },
+
   formatTime(seconds) {
     if (seconds == null || isNaN(seconds)) return '—';
     return `${Number(seconds).toFixed(3)}s`;

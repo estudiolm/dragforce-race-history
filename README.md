@@ -94,6 +94,12 @@ Na ficha do carro, o botão **"+ Novo evento"** (seção Histórico de eventos) 
 
 Cada linha da tabela **Últimas passadas** tem dois botões na coluna de ações: ✏️ **editar** (abre o mesmo formulário já preenchido com os valores da passada, e salva como atualização — não cria um registro novo) e 🗑️ **excluir** (pede confirmação antes de apagar, ação que não pode ser desfeita).
 
+### Melhor tempo por pista e evolução por evento
+
+O "melhor tempo" (do carro, na ficha do carro, e da equipe, no Dashboard) considera **só o 201m**, sem somar a reação — e mostra em qual pista (E ou D) ele foi cravado. Tanto a ficha do carro quanto o Dashboard também têm uma stat tile **"🛣️ Melhor por lado"** comparando o melhor tempo na pista E com o da pista D lado a lado (o mais rápido entra em destaque) — útil pra notar se um carro (ou a pista em si) rende mais de um lado que do outro.
+
+Na ficha do carro, o gráfico **"Evolução das passadas por evento"** (abaixo do gráfico de evolução geral) mostra, pra cada evento, como o tempo foi mudando passada a passada dentro daquele mesmo evento (1ª, 2ª, 3ª tentativa...) — diferente do gráfico de cima, que só compara o melhor tempo de um evento pro outro. Cada evento vira uma linha colorida; se o carro tiver mais de 6 eventos com passadas, só os 6 mais recentes entram no gráfico (aviso na tela de quantos ficaram de fora, pra não virar uma poluição visual de cores repetidas).
+
 ## Inspeções e manutenções
 
 Na ficha do carro, os botões **"+ Nova inspeção"** e **"+ Nova manutenção"** abrem um formulário rápido para registrar:
@@ -128,7 +134,7 @@ Não é uma tela de "esqueci minha senha" nem tem cadastro público — é uma l
 
 O site pode ser "instalado" como se fosse um aplicativo — no celular (Android/iPhone) ou no computador — ficando com ícone próprio (o emblema DragForce), abrindo em tela cheia sem barra de navegador, e funcionando offline para quem já usou o sistema antes (os dados de carros/passadas continuam exigindo internet, já que ficam no Supabase — só a "casca" do app, ou seja header/menus/telas, é que funciona sem conexão).
 
-* **Android/Chrome/Edge (computador ou celular):** aparece um botão de instalar no header (ícone de seta pra baixo, ao lado do ícone de usuário) assim que o navegador considera o site "instalável"; também dá pra instalar pelo menu do navegador (⋮ → "Instalar app" / "Adicionar à tela inicial").
-* **iPhone/iPad (Safari):** não existe esse botão automático — é: toque em **Compartilhar** (ícone de quadrado com seta) → **Adicionar à Tela de Início**.
+* **Android/Chrome/Edge (computador ou celular):** aparece um botão de instalar no header (ícone de seta pra baixo, ao lado do ícone de usuário) assim que o navegador considera o site "instalável" — clicar já dispara o prompt nativo de instalação. Também dá pra instalar pelo menu do navegador (⋮ → "Instalar app" / "Adicionar à tela inicial").
+* **iPhone/iPad (Safari):** o Safari não tem prompt automático (limitação da Apple, não do site) — mas o mesmo botão do header aparece lá também e, ao tocar, abre um passo a passo dentro do próprio app (Compartilhar → "Adicionar à Tela de Início" → Adicionar) em vez de instalar direto. O app instalado ganha até uma tela de abertura (splash) com a cor e o emblema da equipe, em vez da tela branca em branco padrão — arquivos em `assets/icons/splash/`, gerados por `scripts/generate_ios_splash.py` (cobre os tamanhos de tela dos iPhones mais comuns; se aparecer um iPhone novo que não bate com nenhum, o iOS simplesmente mostra tela branca no primeiro instante, sem quebrar nada).
 
-Por trás dos panos isso é feito com dois arquivos padrão da web (nenhuma dependência nova): `manifest.webmanifest` (nome, ícones e cores do app) e `sw.js` (service worker — o script que guarda o "app shell" em cache). **Sempre que os arquivos do site forem atualizados**, é importante trocar o número em `CACHE_VERSION` no topo de `sw.js` — é isso que avisa o navegador de cada pessoa da equipe pra baixar a versão nova em vez de continuar servindo a antiga do cache.
+Por trás dos panos isso é feito com arquivos padrão da web (nenhuma dependência nova): `manifest.webmanifest` (nome, ícones e cores do app, usado pelo Android/Chrome/Edge), `sw.js` (service worker — guarda o "app shell" em cache) e, só pro iOS, as tags `<link rel="apple-touch-startup-image">` no `<head>` do `index.html` apontando pras imagens de splash (o iOS não lê manifest.json pra isso). **Sempre que os arquivos do site forem atualizados**, é importante trocar o número em `CACHE_VERSION` no topo de `sw.js` — é isso que avisa o navegador de cada pessoa da equipe pra baixar a versão nova em vez de continuar servindo a antiga do cache.

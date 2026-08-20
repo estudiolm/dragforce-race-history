@@ -2,3 +2,4 @@ node_modules/
 .DS_Store
 *.log
 assets/logos-original/
+__pycache__/

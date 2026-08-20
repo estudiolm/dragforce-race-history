@@ -13,7 +13,7 @@
    baixarem a versão nova em vez de continuar servindo a antiga do cache.
    ========================================================= */
 
-const CACHE_VERSION = 'dragforce-v1';
+const CACHE_VERSION = 'dragforce-v3';
 
 const APP_SHELL = [
   './',

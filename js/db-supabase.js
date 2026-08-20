@@ -39,6 +39,9 @@ const passFromDb = (r) => ({
   t100: r.t_100 != null ? Number(r.t_100) : null,
   t201: r.t_201 != null ? Number(r.t_201) : null,
   notes: r.notes,
+  // ordem real de registro (define "1ª, 2ª, 3ª passada..." dentro de um evento);
+  // vem do created_at do Postgres, nunca é sobrescrito por edição (ver passToDb)
+  createdAt: r.created_at,
 });
 const passToDb = (p) => ({
   id: p.id, car_id: p.carId, event_id: p.eventId || null, date: p.date,
@@ -184,10 +187,9 @@ DF.dbSupabase = {
       DF.dbSupabase.listMaintenancesByCar(carId),
     ]);
     // "Melhor tempo" considera só o 201m (sem a reação) — é o tempo de pista de verdade
-    const times = passes.filter((p) => p.status !== 'queimou').map((p) => p.t201).filter((t) => typeof t === 'number' && !isNaN(t));
-    const bestTime = times.length ? Math.min(...times) : null;
+    const { bestTime, bestLane, laneBest } = DF.utils.laneStats(passes);
     const lastEvent = events[0] || null;
-    return { bestTime, totalPasses: passes.length, totalEvents: events.length, totalInspections: inspections.length, totalMaintenances: maintenances.length, lastEvent, passes, events, inspections, maintenances };
+    return { bestTime, bestLane, laneBest, totalPasses: passes.length, totalEvents: events.length, totalInspections: inspections.length, totalMaintenances: maintenances.length, lastEvent, passes, events, inspections, maintenances };
   },
 };
 

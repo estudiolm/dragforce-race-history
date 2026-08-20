@@ -7,6 +7,7 @@ DF.pages = DF.pages || {};
 
 DF.pages.carDetail = {
   chartInstance: null,
+  chartByEventInstance: null,
 
   statusBadge(status) {
     const map = {
@@ -26,6 +27,15 @@ DF.pages.carDetail = {
     const m = map[status] || map.valido;
     return `<span class="badge ${m.cls}">${m.icon} ${m.label}</span>`;
   },
+
+  // Paleta categórica (validada com scripts/validate_palette.js da skill de
+  // dataviz contra o fundo real do chart-card, #131520, modo escuro — 6 tons
+  // não usados em nenhum outro lugar da marca, pra não confundir com o
+  // vermelho de destaque já usado no resto da UI) + formas de ponto distintas
+  // como codificação secundária (a cor sozinha não é garantia de diferenciação
+  // pra todo tipo de daltonismo).
+  EVENT_CHART_COLORS: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300'],
+  EVENT_CHART_SHAPES: ['circle', 'rect', 'triangle', 'rectRot', 'star', 'crossRot'],
 
   async render(root, carId) {
     const car = await DF.db.getCar(carId);
@@ -65,6 +75,11 @@ DF.pages.carDetail = {
         <div class="stat-tile stat-tile--accent">
           <div class="stat-tile__label">🏆 Melhor tempo</div>
           <div class="stat-tile__value">${summary.bestTime != null ? DF.utils.formatTime(summary.bestTime) : '—'}</div>
+          ${summary.bestLane ? `<div class="stat-tile__delta">Pista ${summary.bestLane === 'E' ? 'Esquerda (E)' : 'Direita (D)'}</div>` : ''}
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">🛣️ Melhor por lado</div>
+          ${DF.utils.laneCompareHtml(summary.laneBest)}
         </div>
         <div class="stat-tile">
           <div class="stat-tile__label">⚡ Total de passadas</div>
@@ -87,6 +102,13 @@ DF.pages.carDetail = {
       <div class="section-head"><div class="section-title">Evolução de tempos</div></div>
       <div class="chart-card">
         ${summary.passes.length ? `<div class="chart-card__canvas-wrap"><canvas id="evo-chart"></canvas></div>` : `<div class="empty-state">Sem passadas registradas ainda para gerar o gráfico.</div>`}
+      </div>
+
+      <div class="section-head">
+        <div class="section-title">Evolução das passadas por evento</div>
+      </div>
+      <div class="chart-card">
+        <div id="evo-by-event-wrap"></div>
       </div>
 
       <div class="section-head">
@@ -322,6 +344,110 @@ DF.pages.carDetail = {
         },
       });
     }
+
+    DF.pages.carDetail.renderByEventChart(root, summary);
+  },
+
+  /**
+   * Gráfico "Evolução das passadas por evento": uma linha por evento, eixo X
+   * = número da tentativa dentro do evento (1ª, 2ª, 3ª passada...), eixo Y =
+   * tempo do 201m. Mostra se o carro/piloto evolui ao longo de um mesmo
+   * evento (rodagem, acerto, condições de pista mudando), diferente do
+   * gráfico "Evolução de tempos" acima (que compara só o melhor de cada
+   * evento, evento a evento). Passadas "queimou" ficam de fora (sem 201m).
+   */
+  renderByEventChart(root, summary) {
+    const wrap = root.querySelector('#evo-by-event-wrap');
+    if (!wrap) return;
+
+    const byId = {};
+    summary.events.forEach((ev) => { byId[ev.id] = ev; });
+
+    const seqKey = (p) => p.createdAt || p.id || '';
+    const eventGroups = summary.events
+      .slice()
+      .sort((a, b) => (a.date < b.date ? 1 : -1)) // mais recente primeiro, pra escolher os últimos 6
+      .map((ev) => {
+        const seq = summary.passes
+          .filter((p) => p.eventId === ev.id && p.status !== 'queimou' && typeof p.t201 === 'number' && !isNaN(p.t201))
+          .sort((a, b) => (seqKey(a) < seqKey(b) ? -1 : seqKey(a) > seqKey(b) ? 1 : 0));
+        return { event: ev, times: seq.map((p) => p.t201) };
+      })
+      .filter((g) => g.times.length > 0);
+
+    if (!eventGroups.length) {
+      wrap.innerHTML = `<div class="empty-state">Sem passadas com 201m registrado ainda pra montar esse gráfico.</div>`;
+      return;
+    }
+
+    const MAX_EVENTS = DF.pages.carDetail.EVENT_CHART_COLORS.length; // 6 — tamanho da paleta categórica validada
+    const omitted = Math.max(0, eventGroups.length - MAX_EVENTS);
+    const included = eventGroups.slice(0, MAX_EVENTS).reverse(); // volta pra ordem cronológica (mais antigo → mais recente)
+
+    const maxAttempts = Math.max(...included.map((g) => g.times.length));
+    const labels = Array.from({ length: maxAttempts }, (_, i) => `${i + 1}ª`);
+
+    wrap.innerHTML = `
+      <div class="chart-card__canvas-wrap" style="height:300px"><canvas id="evo-by-event-chart"></canvas></div>
+      ${omitted > 0 ? `<div style="margin-top:var(--space-3);font-size:12px;color:var(--text-muted)">Mostrando os ${MAX_EVENTS} eventos mais recentes com passadas registradas (${omitted} evento${omitted > 1 ? 's' : ''} mais antigo${omitted > 1 ? 's' : ''} fora do gráfico, pra manter as cores legíveis).</div>` : ''}
+    `;
+
+    const ctx = wrap.querySelector('#evo-by-event-chart').getContext('2d');
+    if (DF.pages.carDetail.chartByEventInstance) DF.pages.carDetail.chartByEventInstance.destroy();
+    DF.pages.carDetail.chartByEventInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: included.map((g, i) => ({
+          label: g.event.name,
+          data: g.times,
+          borderColor: DF.pages.carDetail.EVENT_CHART_COLORS[i],
+          backgroundColor: DF.pages.carDetail.EVENT_CHART_COLORS[i],
+          pointStyle: DF.pages.carDetail.EVENT_CHART_SHAPES[i],
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#0b0c11',
+          pointBorderColor: DF.pages.carDetail.EVENT_CHART_COLORS[i],
+          pointBorderWidth: 2,
+          borderWidth: 2,
+          tension: 0.3,
+          spanGaps: true,
+        })),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'nearest', intersect: false },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#9aa1b2', font: { family: 'Rajdhani', size: 12 }, usePointStyle: true, boxWidth: 8, padding: 14 },
+          },
+          tooltip: {
+            backgroundColor: '#191c29',
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1,
+            titleColor: '#f2f4f8',
+            bodyColor: '#9aa1b2',
+            padding: 10,
+            titleFont: { family: 'Rajdhani', weight: '700' },
+            bodyFont: { family: 'JetBrains Mono' },
+            callbacks: { label: (item) => `${item.dataset.label}: ${item.formattedValue}s` },
+          },
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Passada dentro do evento', color: '#5d6273', font: { family: 'Rajdhani', size: 11.5 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#5d6273', font: { family: 'JetBrains Mono', size: 11 } },
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#5d6273', font: { family: 'JetBrains Mono', size: 11 }, callback: (v) => `${v}s` },
+          },
+        },
+      },
+    });
   },
 };
 
